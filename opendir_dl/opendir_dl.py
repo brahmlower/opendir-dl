@@ -2,6 +2,8 @@
 import urllib
 import datetime
 import httplib2
+from sqlalchemy import or_
+from sqlalchemy import and_
 from sqlalchemy import Column
 from sqlalchemy import String
 from sqlalchemy import Integer
@@ -82,18 +84,32 @@ def crawl_page(db_conn, target_url, rec_depth = 50):
             # This is an html page, and should be crawled, not indexed
             crawl_page(db_conn, url, rec_depth - 1)
         else:
-            #print "Creating entry for url: %s" % url
             file_name = urllib.unquote(a['href'])
             url_entry = create_remotefile(domain, url, file_name, url_head)
             db_conn.add(url_entry)
 
-def index(input_url):
+def index(input_url, input_flags):
+    print "flags:", input_flags
     db_conn = create_database_connection("sqlite3.db")
     crawl_page(db_conn, input_url)
     db_conn.commit()
 
-def search(input_term):
+def search(input_terms, input_flags):
+    search_property = "name"
+    if "urlsearch" in input_flags:
+        search_property = "url"
+
+    exclusive = True
+    if "inclusive" in input_flags:
+        exclusive = False
+
     db_conn = create_database_connection("sqlite3.db")
-    results = db_conn.query(RemoteFile).filter(RemoteFile.name.like("%%%s%%" % input_term))
+    filters = []
+    for i in input_terms:
+        filters.append(getattr(RemoteFile, search_property).like("%%%s%%" % i))
+    if exclusive:
+        results = db_conn.query(RemoteFile).filter(and_(*filters))
+    else:
+        results = db_conn.query(RemoteFile).filter(or_(*filters))
     for i in results.all():
         print i.name, i.url

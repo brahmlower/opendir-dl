@@ -16,7 +16,21 @@ python -m SimpleHTTPServer &
 ./opendir-dl index http://localhost:8000/
 ```
 
-Examples of how this might be used:
+Working Examples:
+```
+opendir-dl index http://www.google.com
+
+opendir-dl search png
+
+opendir-dl search png jpg
+
+opendir-dl search --inclusive png jpg
+
+opendir-dl search --urlsearch png
+```
+
+
+Planned examples (some may already be working, but I'm too lazy to properly update this):
 ```
 opendir-dl index http://www.google.com
 
@@ -33,6 +47,5 @@ Library testing can be done by installing the package and importing it in idle:
 ```
 import opendir_dl
 opendir_dl.main(['list', 'of', 'arguments'])
-
 opendir_dl.index("http://opendir.com/")
 ```
