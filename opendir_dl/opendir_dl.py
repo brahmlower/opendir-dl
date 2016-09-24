@@ -91,3 +91,9 @@ def index(input_url):
     db_conn = create_database_connection("sqlite3.db")
     crawl_page(db_conn, input_url)
     db_conn.commit()
+
+def search(input_term):
+    db_conn = create_database_connection("sqlite3.db")
+    results = db_conn.query(RemoteFile).filter(RemoteFile.name.like("%%%s%%" % input_term))
+    for i in results.all():
+        print i.name, i.url
