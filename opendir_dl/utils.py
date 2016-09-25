@@ -46,8 +46,14 @@ def create_remotefile(domain, url, file_name, head_response):
     """
     content_length = head_response['content-length']
     content_type = head_response['content-type']
-    last_modified = datetime.datetime.strptime(head_response['last-modified'], \
-        "%a, %d %b %Y %H:%M:%S GMT")
+    date_keys = ["last-modified", "date"]
+    for i in date_keys:
+        try:
+            last_modified = datetime.datetime.strptime(head_response[i], \
+                "%a, %d %b %Y %H:%M:%S GMT")
+            break
+        except KeyError:
+            pass
     return RemoteFile( \
         url=url,
         domain=domain, \
@@ -80,6 +86,12 @@ class RemoteFile(MODELBASE):
     content_length = Column(Integer)
     last_modified = Column(DateTime)
 
+def dirty_url(url, anchor):
+    static_anchors = ["../", "/", "?C=N;O=D", "?C=M;O=A", "?C=S;O=A", "?C=D;O=A"]
+    if anchor in static_anchors:
+        return True
+    return False
+
 def crawl_page(db_conn, target_url, rec_depth=50):
     """Recursive page crawling function
 
@@ -94,6 +106,8 @@ def crawl_page(db_conn, target_url, rec_depth=50):
     soup = BeautifulSoup(html, "lxml")
     for anchor in soup.find_all('a', href=True):
         url = target_url + anchor['href']
+        if dirty_url(url, anchor['href']):
+            continue
         url_head = get_url_head(http_session, url)
         if url_head["content-type"].startswith("text/html"):
             # This is an html page, and should be crawled, not indexed
