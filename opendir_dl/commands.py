@@ -45,6 +45,7 @@ def command_search(input_values, input_flags, input_options): #pylint: disable=u
         results = db_wrapper.query(RemoteFile).filter(or_(*filters))
     output_table = PrettyTable(['ID', 'Name', 'URL'])
     output_table.padding_width = 1
+    output_table.align = 'l'
     for i in results.all():
         output_table.add_row([i.pkid, i.name, i.url])
     print output_table
