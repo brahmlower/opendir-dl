@@ -1,8 +1,8 @@
 from sqlalchemy import or_
 from sqlalchemy import and_
 from opendir_dl.utils import create_database_connection
-from opendir_dl.utils import crawl_page
 from opendir_dl.utils import RemoteFile
+from opendir_dl.utils import PageCrawler
 
 def command_help(input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl help` is called
@@ -15,9 +15,10 @@ def command_index(input_values, input_flags, input_options): #pylint: disable=un
     """Function run when `opendir-dl index` is called
     """
     db_conn = create_database_connection("sqlite3.db")
-    for url in input_values:
-        crawl_page(db_conn, url)
-    db_conn.commit()
+    crawler = PageCrawler(db_conn, input_values)
+    crawler.quick = "quick" in input_flags
+    crawler.reindex = input_options.get("reindex", None)
+    crawler.crawl()
 
 def command_search(input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl search` is called
