@@ -4,7 +4,7 @@ from opendir_dl.commands import command_search
 
 class ParseInput(object):
     available_flags = ["inclusive", "quick", "quiet", "urlsearch"]
-    available_options = ["depth"]
+    available_options = ["depth", "db"]
     def __init__(self):
         """Default values for the types of input
 

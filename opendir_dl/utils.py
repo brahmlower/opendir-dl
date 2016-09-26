@@ -1,4 +1,5 @@
 import urllib
+import tempfile
 from datetime import datetime
 import httplib2
 from bs4 import BeautifulSoup
@@ -118,7 +119,6 @@ class PageCrawler(object):
                 file_dict = {'oddl_url': url}
                 self.file_heads.append(file_dict)
 
-
     def save_heads(self):
         """Saves file entries that are queued up in self.file_heads
 
@@ -146,6 +146,99 @@ class PageCrawler(object):
         # threading *might* cause a lot of problems here...
         self.db_conn.commit()
 
+class DatabaseWrapper(object):
+    default_db_path = 'sqlite3.db'
+
+    def __init__(self, source=None):
+        self.db_conn = None
+        self.tempfile = None
+        if source:
+            self.source = source
+        else:
+            self.source = self.default_db_path
+
+        # This is meant to be overwritten with a reference to
+        # self.db_conn.query that way stuff can just call wrapper.query like
+        # normal
+        self.query = None
+
+    def is_connected(self):
+        """True/False value for if the DatabaseWrapper instance is connected
+        """
+        return self.db_conn != None
+
+    def connect(self):
+        """ Establish the database session given the set values
+        """
+        database_engine = create_engine('sqlite:///%s' % self.source)
+        MODELBASE.metadata.create_all(database_engine)
+        MODELBASE.metadata.bind = database_engine
+        database_session = sessionmaker(bind=database_engine)
+        self.db_conn = database_session()
+        setattr(self, 'query', self.db_conn.query)
+
+    @classmethod
+    def from_default(cls):
+        """Get a default instance of DatabaseWrapper
+
+        This would be used over `DatabaseWrapper()` because this returns an
+        object where self.db_conn is already an established database session
+        """
+        dbw_inst = cls()
+        dbw_inst.connect()
+        return dbw_inst
+
+    @classmethod
+    def from_fs(cls, path):
+        """ Gets a database session from a cache of a remote database
+
+        This method will need additional sanitation on the `path` value.
+        relative and absolute paths *should* work, but anything referecing `~`
+        will need to be expanded first.
+        """
+        dbw_inst = cls(path)
+        dbw_inst.connect()
+        return dbw_inst
+
+    @classmethod
+    def from_data(cls, data):
+        """Get an instance of DatabaseWrapper from the give raw data
+        """
+        dbw_inst = cls()
+        dbw_inst.tempfile = tempfile.NamedTemporaryFile()
+        dbw_inst.tempfile.write(data)
+        dbw_inst.tempfile.flush()
+        dbw_inst.source = dbw_inst.tempfile.name
+        dbw_inst.connect()
+        return dbw_inst
+
+    @classmethod
+    def from_url(cls, url):
+        """ Gets a database session from a URL
+        """
+        http_session = httplib2.Http()
+        http_request = http_session.request(url)
+        return cls.from_data(http_request[1])
+
+    @classmethod
+    def from_unknown(cls, source_string=None):
+        """Creates an instance of DatabaseWrapper given an unknown string
+        """
+        cache_list = [] # TODO: This is a placeholder until cached databases are implemented
+        if not source_string:
+            # This gets us the default configuration
+            return cls.from_default()
+        if source_string.startswith("http://"):
+            # We were given a URL
+            return cls.from_url(source_string)
+        elif source_string in cache_list:
+            # Load from a cache of remote db
+            #return cls.from_cache(source_string)
+            pass
+        else:
+            # We have a fs path
+            return cls.from_fs(source_string)
+
 def get_urls(url, http_session=httplib2.Http()):
     """Gets all useful urls on a page
     """
@@ -163,15 +256,6 @@ def get_urls(url, http_session=httplib2.Http()):
         new_url = url + anchor['href']
         url_bucket.append(new_url)
     return url_bucket
-
-def create_database_connection(database_path=''):
-    """Returns a database session for the specified database
-    """
-    database_engine = create_engine('sqlite:///' + database_path)
-    MODELBASE.metadata.create_all(database_engine)
-    MODELBASE.metadata.bind = database_engine
-    database_session = sessionmaker(bind=database_engine)
-    return database_session()
 
 def get_head(url, http_session=httplib2.Http()):
     """Returns HEAD request data from the provided URL
@@ -250,7 +334,6 @@ def clean_date_modified(head):
         return datetime.strptime(date_string, "%a, %d %b %Y %H:%M:%S GMT")
     except ValueError:
         return None
-
 
 def get_url_head(http_session, url):
     """Returns HEAD request data from the provided URL
