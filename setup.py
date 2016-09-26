@@ -18,14 +18,15 @@ setup(
     packages = ["opendir_dl"],
 
     # Details:
-    url = "",
+    url = "https://github.com/bplower/opendir-dl",
 
     # Description:
-    description = "",
+    description = "This is an indexer and downloader for open directories.",
 
     # Dependant packages:
     install_requires = [
         "sqlalchemy",
+        "prettytable",
         "BeautifulSoup"
     ],
 )

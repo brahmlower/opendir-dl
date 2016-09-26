@@ -3,6 +3,7 @@ from sqlalchemy import and_
 from opendir_dl.utils import create_database_connection
 from opendir_dl.utils import RemoteFile
 from opendir_dl.utils import PageCrawler
+from prettytable import PrettyTable
 
 def command_help(input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl help` is called
@@ -39,5 +40,8 @@ def command_search(input_values, input_flags, input_options): #pylint: disable=u
         results = db_conn.query(RemoteFile).filter(and_(*filters))
     else:
         results = db_conn.query(RemoteFile).filter(or_(*filters))
+    output_table = PrettyTable(['ID','Name','URL'])
+    output_table.padding_width = 1
     for i in results.all():
-        print i.name, i.url
+        output_table.add_row([i.pkid, i.name, i.url])
+    print output_table
