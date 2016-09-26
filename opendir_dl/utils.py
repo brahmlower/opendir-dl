@@ -84,7 +84,7 @@ class PageCrawler(object):
             url = self.url_triage_bucket.pop(0)
             # Get the head information about the URL. This will be necessary
             # for deciding what to do with the resource (crawl it/database it)
-            head = get_head(url)
+            head = http_head(url)
             if head.get('status', None) != '200':
                 continue
             if is_html(head) and "last-modified" not in head.keys():
@@ -157,10 +157,11 @@ class DatabaseWrapper(object):
         else:
             self.source = self.default_db_path
 
+    def query(self, *args, **kwargs):
         # This is meant to be overwritten with a reference to
         # self.db_conn.query that way stuff can just call wrapper.query like
         # normal
-        self.query = None
+        pass
 
     def is_connected(self):
         """True/False value for if the DatabaseWrapper instance is connected
@@ -257,7 +258,7 @@ def get_urls(url, http_session=httplib2.Http()):
         url_bucket.append(new_url)
     return url_bucket
 
-def get_head(url, http_session=httplib2.Http()):
+def http_head(url, http_session=httplib2.Http()):
     """Returns HEAD request data from the provided URL
 
     The dict is contains keys and values with data provided by the HEAD
@@ -266,6 +267,23 @@ def get_head(url, http_session=httplib2.Http()):
     """
     head_response = http_session.request(url, 'HEAD')
     return head_response[0]
+
+def http_get(url, http_session=httplib2.Http()):
+    """Returns GET request data from the provided URL
+    """
+    return http_session.request(url)
+
+def make_file_entry(oddl_head):
+    domain = url_to_domain(oddl_head['oddl_url'])
+    name = url_to_filename(oddl_head['oddl_url'])
+    last_modified = clean_date_modified(oddl_head)
+    # Now create the RemoteFile object
+    file_entry = RemoteFile(url=oddl_head['oddl_url'], domain=domain, \
+        name=name, content_type=oddl_head.get('content-type', None), \
+        content_length=oddl_head.get('content-length', None), \
+        last_modified=last_modified, \
+        last_indexed=datetime.utcnow())
+    return file_entry
 
 def bad_anchor(anchor):
     """Determines if the provided anchor is one we want to follow
@@ -335,12 +353,24 @@ def clean_date_modified(head):
     except ValueError:
         return None
 
-def get_url_head(http_session, url):
-    """Returns HEAD request data from the provided URL
+def download_url(db_wrapper, url):
+    # Make sure we can open the file before downloading the data
+    filename = url_to_filename(url)
+    wfile = open(filename, 'w')
+    # Now download the file
+    response = http_get(url)
+    head = response[0]
+    data = response[1]
+    # Write the contents and close the file descriptor
+    wfile.write(data)
+    wfile.close()
+    # Create an index entry for the file
+    head['oddl_url'] = url
+    file_entry = make_file_entry(head)
+    db_wrapper.db_conn.add(file_entry)
 
-    The dict is contains keys and values with data provided by the HEAD request
-    response from the web server. The request is made using the provided
-    http_session
-    """
-    head_response = http_session.request(url, 'HEAD')
-    return head_response[0]
+def is_url(candidate):
+    # A URL will start with either "http://" or "https://"
+    if candidate.startswith("http://"):
+        return True
+    return candidate.startswith("https://")

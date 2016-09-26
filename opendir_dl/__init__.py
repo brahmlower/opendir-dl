@@ -1,6 +1,7 @@
 from opendir_dl.commands import command_help
 from opendir_dl.commands import command_index
 from opendir_dl.commands import command_search
+from opendir_dl.commands import command_download
 
 class ParseInput(object):
     available_flags = ["inclusive", "quick", "quiet", "urlsearch"]
@@ -78,9 +79,13 @@ def main(input_list):
         "help": command_help,
         "index": command_index,
         "search": command_search,
+        "download": command_download,
     }
     clean_input = ParseInput.new(input_list)
-    command = command_dict[clean_input.command]
+    try:
+        command = command_dict[clean_input.command]
+    except KeyError:
+        command = command_dict["help"]
     input_flags = clean_input.flags
     input_options = clean_input.options
     input_values = clean_input.command_values

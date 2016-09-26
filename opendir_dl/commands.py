@@ -4,6 +4,8 @@ from prettytable import PrettyTable
 from opendir_dl.utils import DatabaseWrapper
 from opendir_dl.utils import RemoteFile
 from opendir_dl.utils import PageCrawler
+from opendir_dl.utils import download_url
+from opendir_dl.utils import is_url
 
 def command_help(input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl help` is called
@@ -46,3 +48,17 @@ def command_search(input_values, input_flags, input_options): #pylint: disable=u
     for i in results.all():
         output_table.add_row([i.pkid, i.name, i.url])
     print output_table
+
+def command_download(input_values, input_flags, input_options): #pylint: disable=unused-argument
+    db_wrapper = DatabaseWrapper.from_unknown(input_options.get('db', None))
+
+    # Standard download
+    for i in input_values:
+        if is_url(i):
+            download_url(db_wrapper, i)
+            db_wrapper.db_conn.commit()
+        if isinstance(i, int) or i.isdigit():
+            query = db_wrapper.query(RemoteFile).get(int(i))
+            download_url(db_wrapper, query.url)
+
+

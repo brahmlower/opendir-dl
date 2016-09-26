@@ -153,11 +153,23 @@ opendir-dl cachedb --delete all
 
 ### Download
 
-**Standard Download** (planned)
+**Standard Download**
 
-A normal download like this will not only download the file to the local directory, but will also index the file, so you may search for it in the future.
+A normal download like this will not only download the file to the local directory, but will also index the file, so you may search for it in the future. If a file is already indexed, its URL can be referenced by the entries ID. There is no limit to the number of identifiers that my be provided.
+
+Download by URL
 ```
 opendir-dl download http://example.com/path/somefile.jpg
+```
+
+Download by ID
+```
+opendir-dl download 25
+```
+
+Providing multiple resource identifiers
+```
+opendir-dl download 26 90 http://example.com/path/someotherfile.iso 15
 ```
 
 **Specify Output** (planned)
@@ -167,16 +179,16 @@ If you are downloading a specific file, you can specify the path or filename.
 opendir-dl download --output newfile.jpg http://example.com/path/somefile.jpg
 ```
 
-**Downloading by ID** (planned)
+**Downloading from Non-Default Databases**
 
-A file can be downloaded by referencing its ID rather than the URL.
+A file can be downloaded from non-default databases by providing the `--db` option. This will download the file associated with the ID 12 in that database, not your default database.
 ```
-opendir-dl download --id 12
+opendir-dl download --db http://example.com/path/bill.db 12
 ```
 
-This applies to the non-default databases too.
+It is worth noting that there is no point in providing the `--db` option while specifying a URL to download. In the following example, the new index entry for somesite.com would be added to the temporary file containing the database retrieved from example.com. The temporary file is deleted once the script is complete, so the newly created index is lost.
 ```
-opendir-dl download --id 98 --db billsdb
+opendir-dl download --db http://example.com/path/bill.db http://somesite.com/file.iso
 ```
 
 **Download Search Results** (planned)
