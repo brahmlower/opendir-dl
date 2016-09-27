@@ -1,8 +1,7 @@
-from sqlalchemy import or_
-from sqlalchemy import and_
 from prettytable import PrettyTable
 from opendir_dl.utils import DatabaseWrapper
 from opendir_dl.utils import RemoteFile
+from opendir_dl.utils import SearchEngine
 from opendir_dl.utils import PageCrawler
 from opendir_dl.utils import download_url
 from opendir_dl.utils import is_url
@@ -26,27 +25,17 @@ def command_index(input_values, input_flags, input_options): #pylint: disable=un
 def command_search(input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl search` is called
     """
-    search_property = "name"
-    if "urlsearch" in input_flags:
-        search_property = "url"
-
-    exclusive = True
-    if "inclusive" in input_flags:
-        exclusive = False
-
     db_wrapper = DatabaseWrapper.from_unknown(input_options.get('db', None))
-
-    filters = []
-    for i in input_values:
-        filters.append(getattr(RemoteFile, search_property).like("%%%s%%" % i))
-    if exclusive:
-        results = db_wrapper.query(RemoteFile).filter(and_(*filters))
-    else:
-        results = db_wrapper.query(RemoteFile).filter(or_(*filters))
+    
+    # Define our search engine and configure it per the provided parameters
+    search = SearchEngine(db_wrapper.db_conn, input_values)
+    if "inclusive" in input_flags:
+        search.exclusive = False
+    # This is all output related stuff
     output_table = PrettyTable(['ID', 'Name', 'URL'])
     output_table.padding_width = 1
     output_table.align = 'l'
-    for i in results.all():
+    for i in search.query():
         output_table.add_row([i.pkid, i.name, i.url])
     print output_table
 

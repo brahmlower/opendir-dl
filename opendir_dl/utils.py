@@ -3,6 +3,7 @@ import tempfile
 from datetime import datetime
 import httplib2
 from bs4 import BeautifulSoup
+import sqlalchemy
 from sqlalchemy import Column
 from sqlalchemy import String
 from sqlalchemy import Integer
@@ -18,13 +19,13 @@ class RemoteFile(MODELBASE):
     """
     __tablename__ = "remotefile"
     pkid = Column(Integer, primary_key=True)
+    url = Column(String)
+    name = Column(String)
     domain = Column(String)
     last_indexed = Column(DateTime)
-    name = Column(String)
-    url = Column(String)
     content_type = Column(String)
-    content_length = Column(Integer)
     last_modified = Column(DateTime)
+    content_length = Column(Integer)
 
 class PageCrawler(object):
     def __init__(self, db_conn, input_urls):
@@ -239,6 +240,45 @@ class DatabaseWrapper(object):
         else:
             # We have a fs path
             return cls.from_fs(source_string)
+
+class SearchEngine(object):
+    def __init__(self, db_conn=None, search_terms=None):
+        self.db_conn = db_conn
+        self._exclusivity = sqlalchemy.and_
+        self.filters = []
+        if not search_terms:
+            search_terms = []
+        for i in search_terms:
+            self.add_filter(i)
+
+    @property
+    def exclusive(self):
+        return self._exclusivity == sqlalchemy.and_
+
+    @exclusive.setter
+    def exclusive(self, value):
+        if value:
+            self._exclusivity = sqlalchemy.and_
+        else:
+            self._exclusivity = sqlalchemy.or_
+
+    def add_filter(self, value):
+        self.filters.append(RemoteFile.name.like("%%%s%%" % value))
+
+    def query(self, db_conn=None):
+        # If the search engine wasn't provided a database, and the query wasn't
+        # provided a database, then raise a ValueError. This is a programming
+        # problem.
+        if not db_conn and not self.db_conn:
+            raise ValueError
+        # The search engine had a database provided to it and query() wasn't
+        # provided with a specific database connection, so we'll default to the
+        # one the class was provided with.
+        elif not db_conn:
+            db_conn = self.db_conn
+
+        results = self.db_conn.query(RemoteFile).filter(self._exclusivity(*self.filters))
+        return results.all()
 
 def get_urls(url, http_session=httplib2.Http()):
     """Gets all useful urls on a page
