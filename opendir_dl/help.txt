@@ -1,0 +1,60 @@
+Usage:
+        opendir-dl [command] (flags) (options) [values]
+
+Commands:
+        index           Index a url and it's child directories.
+        search          Search a database containing indexed URL.
+        download        Download one or more URLs.
+        help            Display this message. (default)
+
+Flags:
+        --inclusive     Changes a search to include all results matching any of
+                        the provided search terms. Search is exclusive by
+                        default.
+                        Observed by: search
+
+        --quick         Changes the indexing method such that HEAD requests are
+                        not made for each possible file. This results in a
+                        quicker index, but less data gathered for each possible
+                        file.
+                        Observed by: index
+
+        --quiet         Do not print output while executing commands. This will
+                        still print any command results.
+                        Observed by: index, search, download
+
+Options:
+        --depth [int]   This is the maximum page depth to travel while indexing
+                        sites. This is to prevent recursive directories from
+                        filling the index database. The default value is 50.
+                        Observed by: index
+
+        --db [url|file|db|'all']
+                        This specifies the database to be used while executing
+                        the command. The provided value can be a URL, a file
+                        path, or a database alias. URLs and file paths must
+                        point to a valid opendir-dl sqlite3 database file. Valid
+                        database alias's are explained in the casheddb section
+                        section. The 'all' database alias is respected here.
+                        Observed by: index, search, download"
+
+Examples:
+        $ opendir-dl index --quick --db test http://localhost:8000/
+
+        In this example we are running a quick index on what is assumed to be
+        an open directory hosted on the localhost. Additionally, data generated
+        by the quick index is being saved to a nondefault database associated
+        with the alias "test".
+
+        $ opendir-dl search --inclusive --db http://site.com/bill.db png jpg
+
+        Here we are searching through a remote database. We are searching the
+        database for files that include one or both of the provided search
+        terms.
+
+        $ opendir-dl download --db all 4
+
+        This will download the file referenced by the file entry with the ID 4
+        in each of the attached databases. This is a useless thing to do, but
+        it illustrates that you can download a file by its ID, and that you can
+        reference all databases at once.

@@ -1,3 +1,4 @@
+import os
 from prettytable import PrettyTable
 from opendir_dl.utils import DatabaseWrapper
 from opendir_dl.utils import RemoteFile
@@ -9,9 +10,11 @@ from opendir_dl.utils import is_url
 def command_help(input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl help` is called
     """
-    print "opendir-dl [command] (options) [value]"
-    print "Example: opendir-dl index http://localhost:8000/"
-    print "Example: opendir-dl search --inclusive png jpg"
+    self_path = os.path.realpath(__file__)
+    cur_dir = "/".join(self_path.split("/")[:-1])
+    rfile = open(cur_dir + "/help.txt", 'r')
+    print rfile.read()
+    rfile.close()
 
 def command_index(input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl index` is called
@@ -26,7 +29,7 @@ def command_search(input_values, input_flags, input_options): #pylint: disable=u
     """Function run when `opendir-dl search` is called
     """
     db_wrapper = DatabaseWrapper.from_unknown(input_options.get('db', None))
-    
+
     # Define our search engine and configure it per the provided parameters
     search = SearchEngine(db_wrapper.db_conn, input_values)
     if "inclusive" in input_flags:
