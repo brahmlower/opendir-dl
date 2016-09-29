@@ -15,3 +15,6 @@ clean:
 
 clean_db:
 	rm sqllite3.db
+
+test:
+	nosetests tests/
