@@ -9,8 +9,12 @@ git:
   depth: 1
 
 install:
+  - pip install coveralls
   - pip install nose
   - pip install .
   
 script:
-  - nosetests tests/
+  - nosetests --with-coverage --cover-package tests/
+
+after_success:
+  coveralls

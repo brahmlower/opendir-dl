@@ -1,4 +1,6 @@
 # opendir-dl
+[![Build Status](https://travis-ci.org/bplower/opendir-dl.svg?branch=master)](https://travis-ci.org/bplower/opendir-dl)
+
 
 This is an indexer and downloader for open directories.
 
