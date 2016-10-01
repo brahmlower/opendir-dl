@@ -43,6 +43,8 @@ def command_search(input_values, input_flags, input_options): #pylint: disable=u
     print output_table
 
 def command_download(input_values, input_flags, input_options): #pylint: disable=unused-argument
+    """Function run when `opendir-dl download` is called
+    """
     db_wrapper = DatabaseWrapper.from_unknown(input_options.get('db', None))
 
     # Standard download

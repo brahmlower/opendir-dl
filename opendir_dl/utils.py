@@ -72,8 +72,8 @@ class PageCrawler(object):
 
             while len(self.index_urls) > 0:
                 url = self.index_urls.pop(0)
-                triage_bucket = get_urls(url)
-                self.url_triage_bucket += triage_bucket
+                response = http_get(url)
+                self.url_triage_bucket += parse_urls(url, response[1])
 
             self.save_heads()
 
@@ -85,10 +85,10 @@ class PageCrawler(object):
             url = self.url_triage_bucket.pop(0)
             # Get the head information about the URL. This will be necessary
             # for deciding what to do with the resource (crawl it/database it)
-            head = http_head(url)
-            if head.get('status', None) != '200':
+            head = HttpHead.from_url(url)
+            if head.status != '200':
                 continue
-            if is_html(head) and "last-modified" not in head.keys():
+            if head.is_html() and not head.last_modified:
                 # If the content type is "text/html", and does not have a
                 # "last-modified" date, then it's a page we want to crawl. If
                 # the page has a "last-modified" date, it is a static file
@@ -103,7 +103,6 @@ class PageCrawler(object):
                 # is prefixed with "oddl_" to prevent any collision with data
                 # that may already be in the dictionary (unlikely, but just
                 # in case)
-                head['oddl_url'] = url
                 self.file_heads.append(head)
 
     def triage_quick(self):
@@ -117,8 +116,8 @@ class PageCrawler(object):
             else:
                 # This might be just a file, don't get any information about
                 # it and just add the data we have about it to the file_heads
-                file_dict = {'oddl_url': url}
-                self.file_heads.append(file_dict)
+                head = HttpHead(url, {})
+                self.file_heads.append(head)
 
     def save_heads(self):
         """Saves file entries that are queued up in self.file_heads
@@ -130,18 +129,8 @@ class PageCrawler(object):
             # associated with it (domain/name/last_modified), and then make the
             # RemoteFile object.
             head = self.file_heads.pop(0)
-            domain = url_to_domain(head['oddl_url'])
-            name = url_to_filename(head['oddl_url'])
-            last_modified = clean_date_modified(head)
-            # Now create the RemoteFile object
-            file_entry = RemoteFile(url=head['oddl_url'], domain=domain, \
-                name=name, content_type=head.get('content-type', None), \
-                content_length=head.get('content-length', None), \
-                last_modified=last_modified, \
-                last_indexed=datetime.utcnow())
-            # Add the file entry to the database session
-            self.db_conn.add(file_entry)
-            print "Found file: %s" % head['oddl_url']
+            self.db_conn.add(head.as_remotefile())
+            print "Found file: %s" % head.url
         # Now that the looping has finished, commit our new objects to the
         # database. TODO: Depending how how the database session works,
         # threading *might* cause a lot of problems here...
@@ -280,12 +269,63 @@ class SearchEngine(object):
         results = self.db_conn.query(RemoteFile).filter(self._exclusivity(*self.filters))
         return results.all()
 
-def get_urls(url, http_session=httplib2.Http()):
+class HttpHead(object):
+    def __init__(self, url, head_dict):
+        self._last_modified = None
+        self.url = url
+        self.status = head_dict.get("status", 0)
+        self.content_type = head_dict.get("content-type", '')
+        self.content_length = head_dict.get("content-length", 0)
+        self.last_modified = head_dict.get("last-modified", None)
+        self.last_indexed = datetime.utcnow()
+
+    @property
+    def last_modified(self):
+        return self._last_modified
+
+    @last_modified.setter
+    def last_modified(self, value):
+        try:
+            self._last_modified = datetime.strptime(value, \
+                "%a, %d %b %Y %H:%M:%S GMT")
+        except ValueError:
+            self._last_modified = None
+        except TypeError:
+            self._last_modified = None
+
+    def is_html(self):
+        """Determines if resource is of type "text/html"
+        The provided dict should be the HEAD of an http request. It is an html
+        page if the HEAD contains the key "content-type" and that value starts
+        with "text/html"
+        """
+        return self.content_type.startswith("text/html")
+
+    def as_remotefile(self):
+        file_entry = RemoteFile(url=self.url, domain=url_to_domain(self.url),
+                                name=url_to_filename(self.url),
+                                content_type=self.content_type,
+                                content_length=self.content_length,
+                                last_modified=self.last_modified,
+                                last_indexed=self.last_indexed)
+        return file_entry
+
+    @classmethod
+    def from_url(cls, url, http_session=httplib2.Http()):
+        """Returns HEAD request data from the provided URL
+
+        The dict is contains keys and values with data provided by the HEAD
+        request response from the web server. The request is made using the
+        provided http_session
+        """
+        response = http_session.request(url, 'HEAD')
+        return cls(url, response[0])
+
+def parse_urls(url, html):
     """Gets all useful urls on a page
     """
     print "Searching directory: %s" % url
-    url_bucket = []
-    html = http_session.request(url)[1]
+    url_list = []
     # Parse the html we get from the site and then itterate over all 'a'
     # dom elements that have an href in them.
     soup = BeautifulSoup(html, "lxml")
@@ -295,38 +335,20 @@ def get_urls(url, http_session=httplib2.Http()):
             continue
         # build the full url and add it to the url bucket
         new_url = url + anchor['href']
-        url_bucket.append(new_url)
-    return url_bucket
-
-def http_head(url, http_session=httplib2.Http()):
-    """Returns HEAD request data from the provided URL
-
-    The dict is contains keys and values with data provided by the HEAD
-    request response from the web server. The request is made using the
-    provided http_session
-    """
-    head_response = http_session.request(url, 'HEAD')
-    return head_response[0]
+        url_list.append(new_url)
+    return url_list
 
 def http_get(url, http_session=httplib2.Http()):
     """Returns GET request data from the provided URL
     """
     return http_session.request(url)
 
-def make_file_entry(oddl_head):
-    domain = url_to_domain(oddl_head['oddl_url'])
-    name = url_to_filename(oddl_head['oddl_url'])
-    last_modified = clean_date_modified(oddl_head)
-    # Now create the RemoteFile object
-    file_entry = RemoteFile(url=oddl_head['oddl_url'], domain=domain, \
-        name=name, content_type=oddl_head.get('content-type', None), \
-        content_length=oddl_head.get('content-length', None), \
-        last_modified=last_modified, \
-        last_indexed=datetime.utcnow())
-    return file_entry
-
 def bad_anchor(anchor):
     """Determines if the provided anchor is one we want to follow
+
+    I know all the logic here can be compressed into a smaller expression,
+    but it's saying expanded just to be more readable. This function will be
+    improved eventually anyway.
     """
     static_anchors = ["../", "/", "?C=N;O=D", "?C=M;O=A", "?C=S;O=A",\
         "?C=D;O=A"]
@@ -337,15 +359,6 @@ def bad_anchor(anchor):
     if anchor[0] == "/":
         return True
     return False
-
-def is_html(head):
-    """Determines if resource is of type "text/html"
-    The provided dict should be the HEAD of an http request. It is an html
-    page if the HEAD contains the key "content-type" and that value starts
-    with "text/html"
-    """
-    value = head.get("content-type", "")
-    return value.startswith("text/html")
 
 def url_to_domain(url):
     """Parses the domain name from the given URL
@@ -365,7 +378,7 @@ def url_to_domain(url):
         end = url[start:].index("/") + start
     except ValueError:
         end = len(url)
-    return url[start:end]
+    return url[start:end].split(":")[0]
 
 def url_to_filename(url):
     """Parses the filename from the given URL
@@ -376,38 +389,21 @@ def url_to_filename(url):
         filename = "index.html"
     return filename
 
-def clean_date_modified(head):
-    """ Proves a clean representation of the last-modified value in the HEAD
-
-    The provided dict should represent the HEAD received by an http request. If
-    the dict contains the key "last-modified", attempt to cast the value to a
-    datetime object. Returns None if any of this fails.
-    """
-    date_string = head.get("last-modified", None)
-    # The key wasn't in the dict, so return None
-    if not date_string:
-        return None
-    # Try to make a datetime object out of the provided value
-    try:
-        return datetime.strptime(date_string, "%a, %d %b %Y %H:%M:%S GMT")
-    except ValueError:
-        return None
-
 def download_url(db_wrapper, url):
-    # Make sure we can open the file before downloading the data
     filename = url_to_filename(url)
-    wfile = open(filename, 'w')
-    # Now download the file
+    # Download the file
     response = http_get(url)
-    head = response[0]
-    data = response[1]
-    # Write the contents and close the file descriptor
+    # Save the file
+    write_file(filename, response[1])
+    # Create an index entry for the file
+    head = HttpHead(url, response[0])
+    db_wrapper.db_conn.add(head.as_remotefile())
+    db_wrapper.db_conn.commit()
+
+def write_file(filename, data):
+    wfile = open(filename, 'w')
     wfile.write(data)
     wfile.close()
-    # Create an index entry for the file
-    head['oddl_url'] = url
-    file_entry = make_file_entry(head)
-    db_wrapper.db_conn.add(file_entry)
 
 def is_url(candidate):
     # A URL will start with either "http://" or "https://"

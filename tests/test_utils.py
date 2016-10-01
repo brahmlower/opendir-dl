@@ -4,7 +4,7 @@ from datetime import datetime
 import opendir_dl
 
 class IsUrlTest(unittest.TestCase):
-    """Tests cssefserver.CssefServer
+    """Tests opendir_dl.utils.is_url
     """
     def test_valid_http(self):
         url = "http://localhost:9000/"
@@ -26,30 +26,9 @@ class IsUrlTest(unittest.TestCase):
         url = ":/12/363p"
         self.assertFalse(opendir_dl.utils.is_url(url))
 
-class CleanDateModifiedTest(unittest.TestCase):
-    def test_valid_date(self):
-        date_string = "Mon, 16 Jan 2006 16:30:19 GMT"
-        date = opendir_dl.utils.clean_date_modified(date_string)
-        self.assertTrue(isinstance(date, datetime))
-
-    def test_invalid_date_value(self):
-        # Note that the Day of the week is incorrect here (should be Sun)
-        date_string = "Mon, 15 Jan 2006 16:30:19 GMT"
-        date = opendir_dl.utils.clean_date_modified(date_string)
-        self.assertEquals(date, None)
-
-    def test_invalid_date_format(self):
-        # Note that the day of the month and the month name are swapped
-        date_string = "Mon, Jan 16 2006 16:30:19 GMT"
-        date = opendir_dl.utils.clean_date_modified(date_string)
-        self.assertEquals(date, None)
-
-    def test_invalid_date_none(self):
-        date_string = None
-        date = opendir_dl.utils.clean_date_modified(date_string)
-        self.assertEquals(date, None)
-
 class UrlToFilenameTest(unittest.TestCase):
+    """Tests opendir_dl.utils.url_to_filename
+    """
     def test_normal_name(self):
         filename = "filename.txt"
         url = "http://localhost/%s" % filename
@@ -66,3 +45,109 @@ class UrlToFilenameTest(unittest.TestCase):
         url = "http://localhost/"
         parsed_filename = opendir_dl.utils.url_to_filename(url)
         self.assertEquals("index.html", parsed_filename)
+
+class UrlToDomainTest(unittest.TestCase):
+    """Tests opendir_dl.utils.url_to_domain
+    """
+    def test_localhost_url(self):
+        url = "http://localhost/dir/stuff.txt"
+        domain = opendir_dl.utils.url_to_domain(url)
+        self.assertEquals(domain, "localhost")
+
+    def test_full_url(self):
+        url = "http://example.com/dir/stuff.txt"
+        domain = opendir_dl.utils.url_to_domain(url)
+        self.assertEquals(domain, "example.com")
+
+    def test_url_with_port(self):
+        url = "http://example.com:9000/dir/stuff.txt"
+        domain = opendir_dl.utils.url_to_domain(url)
+        self.assertEquals(domain, "example.com")
+
+class HttpHeadTest(unittest.TestCase):
+    """Tests opendir_dl.utils.HttpHead
+    """
+    def test_normal_head(self):
+        url = "http://example.com/dir/"
+        head_dict = {"status": '200', "content-type": 'text/plain',
+            "content-length": '500',
+            "last-modified": "Mon, 16 Jan 2006 16:30:19 GMT"}
+        head = opendir_dl.utils.HttpHead(url, head_dict)
+        self.assertTrue(isinstance(head, opendir_dl.utils.HttpHead))
+        self.assertEquals(head.url, url)
+        self.assertEquals(head.status, head_dict['status'])
+        self.assertEquals(head.content_type, head_dict['content-type'])
+        self.assertEquals(head.content_length, head_dict['content-length'])
+        self.assertTrue(isinstance(head.last_modified, datetime))
+        self.assertTrue(isinstance(head.last_indexed, datetime))
+
+    def test_no_dict(self):
+        url = "http://example.com/dir/"
+        head_dict = {}
+        head = opendir_dl.utils.HttpHead(url, head_dict)
+        self.assertTrue(isinstance(head, opendir_dl.utils.HttpHead))
+        self.assertEquals(head.url, url)
+        self.assertEquals(head.status, 0)
+        self.assertEquals(head.content_type, '')
+        self.assertEquals(head.content_length, 0)
+        self.assertEquals(head.last_modified, None)
+        self.assertTrue(isinstance(head.last_indexed, datetime))
+
+    def test_html_content_type(self):
+        url = "http://example.com/dir/"
+        head_dict = {"status": '200', "content-type": 'text/html some info',
+            "content-length": '500',
+            "last-modified": "Mon, 16 Jan 2006 16:30:19 GMT"}
+        head = opendir_dl.utils.HttpHead(url, head_dict)
+        self.assertTrue(isinstance(head, opendir_dl.utils.HttpHead))
+        self.assertTrue(head.is_html())
+
+    def test_as_remotefile(self):
+        url = "http://example.com/dir/"
+        head_dict = {"status": '200', "content-type": 'text/html some info',
+            "content-length": '500',
+            "last-modified": "Mon, 16 Jan 2006 16:30:19 GMT"}
+        head = opendir_dl.utils.HttpHead(url, head_dict)
+        self.assertTrue(isinstance(head, opendir_dl.utils.HttpHead))
+        self.assertTrue(isinstance(head.as_remotefile(), opendir_dl.utils.RemoteFile))
+
+class ParseUrlsTest(unittest.TestCase):
+    """Tests opendir_dl.utils.url_to_domain
+    """
+    def test_empty_text(self):
+        url = "http://localhost/"
+        html = ""
+        url_list = opendir_dl.utils.parse_urls(url, html)
+        self.assertTrue(isinstance(url_list, list))
+        self.assertEquals(len(url_list), 0)
+
+    def test_single_link(self):
+        url = "http://localhost/"
+        html = "<html><a href=\"link\">link</a></html>"
+        url_list = opendir_dl.utils.parse_urls(url, html)
+        self.assertTrue(isinstance(url_list, list))
+        self.assertEquals(len(url_list), 1)
+        self.assertEquals(url_list[0], "http://localhost/link")
+
+    def test_no_clean_links(self):
+        url = "http://localhost/"
+        html = "<html><a href=\"#\">link</a></html>"
+        url_list = opendir_dl.utils.parse_urls(url, html)
+        self.assertTrue(isinstance(url_list, list))
+        self.assertEquals(len(url_list), 0)
+
+class BadAnchorTest(unittest.TestCase):
+    def test_good_anchor(self):
+        href = "filename.txt"
+        is_bad = opendir_dl.utils.bad_anchor(href)
+        self.assertFalse(is_bad)
+
+    def test_page_anchor(self):
+        href = "#bottom"
+        is_bad = opendir_dl.utils.bad_anchor(href)
+        self.assertTrue(is_bad)
+
+    def test_sort_anchor(self):
+        href = "?C=M;O=A"
+        is_bad = opendir_dl.utils.bad_anchor(href)
+        self.assertTrue(is_bad)
