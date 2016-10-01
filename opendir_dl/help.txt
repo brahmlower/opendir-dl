@@ -23,6 +23,10 @@ Flags:
                         still print any command results.
                         Observed by: index, search, download
 
+        --search        Execute search first, using all provided flags, options
+                        and values. Then download all results.
+                        Observed by: download
+
 Options:
         --depth [int]   This is the maximum page depth to travel while indexing
                         sites. This is to prevent recursive directories from
@@ -33,8 +37,8 @@ Options:
                         This specifies the database to be used while executing
                         the command. The provided value can be a URL, a file
                         path, or a database alias. URLs and file paths must
-                        point to a valid opendir-dl sqlite3 database file. Valid
-                        database alias's are explained in the casheddb section
+                        point to a valid opendir-dl sqlite3 database file.
+                        Valid database alias's are explained in the casheddb
                         section. The 'all' database alias is respected here.
                         Observed by: index, search, download"
 

@@ -17,6 +17,10 @@ setup(
     # Packages:
     packages = ["opendir_dl"],
 
+    package_data = {'': ['opendir_dl/help.txt']},
+
+    scripts = ['opendir-dl'],
+
     # Details:
     url = "https://github.com/bplower/opendir-dl",
 
@@ -25,8 +29,9 @@ setup(
 
     # Dependant packages:
     install_requires = [
+        "httplib2",
         "sqlalchemy",
         "prettytable",
-        "BeautifulSoup"
+        "BeautifulSoup4"
     ],
 )

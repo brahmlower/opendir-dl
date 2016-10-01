@@ -1,0 +1,15 @@
+notifications:
+  email: false
+
+language: python
+python:
+  -  "2.7"
+
+git:
+  depth: 1
+
+install:
+  - pip install nose
+  
+script:
+  - nosetests tests/
