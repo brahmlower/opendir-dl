@@ -434,6 +434,6 @@ def write_file(filename, data):
 
 def is_url(candidate):
     # A URL will start with either "http://" or "https://"
-    if candidate.startswith("http://"):
+    if str(candidate).startswith("http://"):
         return True
-    return candidate.startswith("https://")
+    return str(candidate).startswith("https://")

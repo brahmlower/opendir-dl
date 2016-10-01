@@ -33,8 +33,7 @@ def command_search(input_values, input_flags, input_options): #pylint: disable=u
 
     # Define our search engine and configure it per the provided parameters
     search = SearchEngine(db_wrapper.db_conn, input_values)
-    if "inclusive" in input_flags:
-        search.exclusive = False
+    search.exclusive = "inclusive" not in input_flags
     # This is all output related stuff
     output_table = PrettyTable(['ID', 'Name', 'URL'])
     output_table.padding_width = 1
@@ -47,6 +46,14 @@ def command_download(input_values, input_flags, input_options): #pylint: disable
     """Function run when `opendir-dl download` is called
     """
     db_wrapper = DatabaseWrapper.from_unknown(input_options.get('db', None))
+
+    # This is a really hacky way of implementing the --search flag
+    if "search" in input_flags:
+        search = SearchEngine(db_wrapper.db_conn, input_values)
+        search.exclusive = "inclusive" not in input_flags
+        input_values = []
+        for i in search.query():
+            input_values.append(i.pkid)
 
     dlman = DownloadManager(db_wrapper, input_values)
     dlman.start()
