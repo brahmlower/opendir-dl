@@ -29,6 +29,7 @@ setup(
 
     # Dependant packages:
     install_requires = [
+        "lxml",
         "httplib2",
         "sqlalchemy",
         "prettytable",
