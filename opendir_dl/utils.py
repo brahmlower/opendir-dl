@@ -321,6 +321,33 @@ class HttpHead(object):
         response = http_session.request(url, 'HEAD')
         return cls(url, response[0])
 
+class DownloadManager(object):
+    def __init__(self, db_wrapper, download_ids):
+        self.db_wrapper = db_wrapper
+        self.download_ids = download_ids
+
+    def download_url(self, url):
+        filename = url_to_filename(url)
+        # Download the file
+        response = http_get(url)
+        # Save the file
+        write_file(filename, response[1])
+        # Create an index entry for the file
+        head = HttpHead(url, response[0])
+        self.db_wrapper.db_conn.add(head.as_remotefile())
+        self.db_wrapper.db_conn.commit()
+
+    def download_id(self, pkid):
+        query = self.db_wrapper.query(RemoteFile).get(int(pkid))
+        self.download_url(query.url)
+
+    def start(self):
+        for item in self.download_ids:
+            if is_url(item):
+                self.download_url(item)
+            elif isinstance(item, int) or item.isdigit():
+                self.download_id(item)
+
 def parse_urls(url, html):
     """Gets all useful urls on a page
     """

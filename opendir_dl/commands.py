@@ -4,6 +4,7 @@ from opendir_dl.utils import DatabaseWrapper
 from opendir_dl.utils import RemoteFile
 from opendir_dl.utils import SearchEngine
 from opendir_dl.utils import PageCrawler
+from opendir_dl.utils import DownloadManager
 from opendir_dl.utils import download_url
 from opendir_dl.utils import is_url
 
@@ -47,13 +48,5 @@ def command_download(input_values, input_flags, input_options): #pylint: disable
     """
     db_wrapper = DatabaseWrapper.from_unknown(input_options.get('db', None))
 
-    # Standard download
-    for i in input_values:
-        if is_url(i):
-            download_url(db_wrapper, i)
-            db_wrapper.db_conn.commit()
-        if isinstance(i, int) or i.isdigit():
-            query = db_wrapper.query(RemoteFile).get(int(i))
-            download_url(db_wrapper, query.url)
-
-
+    dlman = DownloadManager(db_wrapper, input_values)
+    dlman.start()
