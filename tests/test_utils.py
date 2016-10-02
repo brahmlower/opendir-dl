@@ -1,3 +1,4 @@
+import os
 import tempfile
 import unittest
 from urlparse import urlparse
@@ -145,7 +146,49 @@ class PageCrawlerTest(unittest.TestCase):
     pass
 
 class DatabaseWrapper(unittest.TestCase):
-    pass
+    def test_default_source(self):
+        db = opendir_dl.utils.DatabaseWrapper()
+        self.assertEquals(db.source, "sqlite3.db")
+        db.connect()
+        self.assertTrue(db.is_connected())
+        self.assertEquals(str(db.db_conn.bind.url), 'sqlite:///sqlite3.db')
 
-class SearchEngineTest(unittest.TestCase):
-    pass
+    def test_memory_source(self):
+        db = opendir_dl.utils.DatabaseWrapper('')
+        self.assertEquals(db.source, '')
+        db.connect()
+        self.assertTrue(db.is_connected())
+        self.assertEquals(str(db.db_conn.bind.url), 'sqlite:///')
+
+    def test_query_reassignment(self):
+        db = opendir_dl.utils.DatabaseWrapper('')
+        db.connect()
+        self.assertTrue(db.is_connected())
+        self.assertEquals(db.db_conn.query, db.query)
+
+    def test_from_default(self):
+        db = opendir_dl.utils.DatabaseWrapper.from_default()
+        self.assertTrue(db.is_connected())
+        self.assertEquals(str(db.db_conn.bind.url), 'sqlite:///sqlite3.db')
+
+    def test_from_data(self):
+        self_path = os.path.realpath(__file__)
+        cur_dir = "/".join(self_path.split("/")[:-1])
+        rfile = open(cur_dir + '/test_from_data.dat', 'rb')
+        data = rfile.read()
+        rfile.close()
+        db = opendir_dl.utils.DatabaseWrapper.from_data(data)
+        self.assertTrue(db.is_connected())
+        self.assertEquals(db.query(opendir_dl.utils.RemoteFile).count(), 1)
+
+#     def test_from_url(self):
+#         pass
+
+#     def test_from_fs(self):
+#         pass
+
+#     def test_from_unknown(self):
+#         pass
+
+# class SearchEngineTest(unittest.TestCase):
+#     pass

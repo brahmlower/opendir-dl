@@ -135,7 +135,7 @@ class DatabaseWrapper(object):
     def __init__(self, source=None):
         self.db_conn = None
         self.tempfile = None
-        if source:
+        if source != None:
             self.source = source
         else:
             self.source = self.default_db_path
@@ -143,7 +143,8 @@ class DatabaseWrapper(object):
     def query(self, *args, **kwargs):
         # This is meant to be overwritten with a reference to
         # self.db_conn.query that way stuff can just call wrapper.query like
-        # normal
+        # normal. This is overwritten with the reference to db_conn.query
+        # when the database is connected
         pass
 
     def is_connected(self):
@@ -200,9 +201,7 @@ class DatabaseWrapper(object):
     def from_url(cls, url):
         """ Gets a database session from a URL
         """
-        http_session = httplib2.Http()
-        http_request = http_session.request(url)
-        return cls.from_data(http_request[1])
+        return cls.from_data(http_get(url)[1])
 
     @classmethod
     def from_unknown(cls, source_string=None):
@@ -319,7 +318,7 @@ class HttpHead(object):
 class DownloadManager(object):
     def __init__(self, db_wrapper, download_ids):
         self.db_wrapper = db_wrapper
-        self.download_ids = download_ids
+        self.queue = download_ids
 
     def download_url(self, url):
         filename = url_to_filename(url)
@@ -336,7 +335,7 @@ class DownloadManager(object):
         self.download_url(query.url)
 
     def start(self):
-        for item in self.download_ids:
+        for item in self.queue:
             if is_url(item):
                 self.download_url(item)
             elif isinstance(item, int) or item.isdigit():
