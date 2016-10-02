@@ -174,13 +174,6 @@ Providing multiple resource identifiers
 opendir-dl download 26 90 http://example.com/path/someotherfile.iso 15
 ```
 
-**Specify Output** (planned)
-
-If you are downloading a specific file, you can specify the path or filename.
-```
-opendir-dl download --output newfile.jpg http://example.com/path/somefile.jpg
-```
-
 **Downloading from Non-Default Databases**
 
 A file can be downloaded from non-default databases by providing the `--db` option. This will download the file associated with the ID 12 in that database, not your default database.
@@ -193,7 +186,7 @@ It is worth noting that there is no point in providing the `--db` option while s
 opendir-dl download --db http://example.com/path/bill.db http://somesite.com/file.iso
 ```
 
-**Download Search Results** (planned)
+**Download Search Results**
 
 You've crafted your search to find the exact files you want, so now it's time to download all of them. This can be done by providing the same parameters to the download command, in addition to the flag `--search`. Lets say you would like to download all files returned in the following search.
 ```
