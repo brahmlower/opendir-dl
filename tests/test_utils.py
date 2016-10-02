@@ -75,9 +75,9 @@ class HttpHeadTest(unittest.TestCase):
         head = opendir_dl.utils.HttpHead(url, head_dict)
         self.assertTrue(isinstance(head, opendir_dl.utils.HttpHead))
         self.assertEquals(head.url, url)
-        self.assertEquals(head.status, head_dict['status'])
+        self.assertEquals(head.status, int(head_dict['status']))
         self.assertEquals(head.content_type, head_dict['content-type'])
-        self.assertEquals(head.content_length, head_dict['content-length'])
+        self.assertEquals(head.content_length, int(head_dict['content-length']))
         self.assertTrue(isinstance(head.last_modified, datetime))
         self.assertTrue(isinstance(head.last_indexed, datetime))
 

@@ -264,12 +264,12 @@ class SearchEngine(object):
 class HttpHead(object):
     def __init__(self, url, head_dict):
         self._last_modified = None
-        self.url = url
-        self.name = url_to_filename(url)
-        self.domain = url_to_domain(url)
-        self.status = head_dict.get("status", 0)
-        self.content_type = head_dict.get("content-type", '')
-        self.content_length = head_dict.get("content-length", 0)
+        self.url = unicode(url)
+        self.name = unicode(url_to_filename(url), errors='ignore')
+        self.domain = unicode(url_to_domain(url))
+        self.status = int(head_dict.get("status", 0))
+        self.content_type = unicode(head_dict.get("content-type", ''))
+        self.content_length = int(head_dict.get("content-length", 0))
         self.last_modified = head_dict.get("last-modified", None)
         self.last_indexed = datetime.utcnow()
 
@@ -446,6 +446,6 @@ def is_url(candidate):
     if not isinstance(candidate, str) and not isinstance(candidate, unicode):
         return False
     # A URL will start with either "http://" or "https://"
-    if candidate.startswith("http://"):
+    if candidate.startswith(u"http://"):
         return True
-    return candidate.startswith("https://")
+    return candidate.startswith(u"https://")
