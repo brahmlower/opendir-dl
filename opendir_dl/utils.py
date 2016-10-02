@@ -433,7 +433,7 @@ def write_file(filename, data):
     wfile.close()
 
 def is_url(candidate):
-    if not isinstance(candidate, str):
+    if not isinstance(candidate, str) and not isinstance(candidate, unicode):
         return False
     # A URL will start with either "http://" or "https://"
     if candidate.startswith("http://"):
