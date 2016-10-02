@@ -1,5 +1,6 @@
 import urllib
 import tempfile
+import urlparse
 from datetime import datetime
 import httplib2
 from bs4 import BeautifulSoup
@@ -264,9 +265,10 @@ class SearchEngine(object):
 class HttpHead(object):
     def __init__(self, url, head_dict):
         self._last_modified = None
+        parsed_url = urlparse.urlparse(url)
         self.url = unicode(url)
         self.name = unicode(url_to_filename(url), errors='ignore')
-        self.domain = unicode(url_to_domain(url))
+        self.domain = unicode(parsed_url.hostname)
         self.status = int(head_dict.get("status", 0))
         self.content_type = unicode(head_dict.get("content-type", ''))
         self.content_length = int(head_dict.get("content-length", 0))
@@ -408,30 +410,12 @@ def bad_anchor(anchor):
         return True
     return False
 
-def url_to_domain(url):
-    """Parses the domain name from the given URL
-    """
-    try:
-        # Get the start of the domain name. If a value error is rasied
-        # that means there is no protocole prefix and we should assume
-        # the domain starts at the first character
-        start = url.index("://") + 3
-    except ValueError:
-        start = 0
-    try:
-        # Find the end of the domain name. If we can't find the "/", that
-        # likely means the url is provided without a URI specified, in
-        # which case we should assume the end of the domain is the end
-        # of the string
-        end = url[start:].index("/") + start
-    except ValueError:
-        end = len(url)
-    return url[start:end].split(":")[0]
-
 def url_to_filename(url):
     """Parses the filename from the given URL
     """
-    quoted_filename = url.split("/")[-1]
+    if not isinstance(url, urlparse.ParseResult):
+        url = urlparse.urlparse(url)
+    quoted_filename = url.path.split("/")[-1]
     filename = urllib.unquote(quoted_filename)
     if len(filename) == 0:
         filename = "index.html"
@@ -443,9 +427,8 @@ def write_file(filename, data):
     wfile.close()
 
 def is_url(candidate):
-    if not isinstance(candidate, str) and not isinstance(candidate, unicode):
+    try:
+        url = urlparse.urlparse(candidate)
+        return url.path != '' and url.scheme != '' and url.netloc != ''
+    except AttributeError:
         return False
-    # A URL will start with either "http://" or "https://"
-    if candidate.startswith(u"http://"):
-        return True
-    return candidate.startswith(u"https://")

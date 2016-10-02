@@ -1,11 +1,9 @@
 import os
 from prettytable import PrettyTable
 from opendir_dl.utils import DatabaseWrapper
-from opendir_dl.utils import RemoteFile
 from opendir_dl.utils import SearchEngine
 from opendir_dl.utils import PageCrawler
 from opendir_dl.utils import DownloadManager
-from opendir_dl.utils import is_url
 
 def command_help(input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl help` is called

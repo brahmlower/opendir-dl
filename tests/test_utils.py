@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from urlparse import urlparse
 from datetime import datetime
 import opendir_dl
 
@@ -20,7 +21,7 @@ class IsUrlTest(unittest.TestCase):
 
     def test_invalid_ftp(self):
         url = "ftp://localhost:9000/"
-        self.assertFalse(opendir_dl.utils.is_url(url))
+        self.assertTrue(opendir_dl.utils.is_url(url))
 
     def test_invalid_unknown(self):
         url = ":/12/363p"
@@ -46,23 +47,11 @@ class UrlToFilenameTest(unittest.TestCase):
         parsed_filename = opendir_dl.utils.url_to_filename(url)
         self.assertEquals("index.html", parsed_filename)
 
-class UrlToDomainTest(unittest.TestCase):
-    """Tests opendir_dl.utils.url_to_domain
-    """
-    def test_localhost_url(self):
-        url = "http://localhost/dir/stuff.txt"
-        domain = opendir_dl.utils.url_to_domain(url)
-        self.assertEquals(domain, "localhost")
-
-    def test_full_url(self):
-        url = "http://example.com/dir/stuff.txt"
-        domain = opendir_dl.utils.url_to_domain(url)
-        self.assertEquals(domain, "example.com")
-
-    def test_url_with_port(self):
-        url = "http://example.com:9000/dir/stuff.txt"
-        domain = opendir_dl.utils.url_to_domain(url)
-        self.assertEquals(domain, "example.com")
+    def test_parsed_url(self):
+        url = "http://localhost/path/filename.txt"
+        parsed_url = urlparse(url)
+        parsed_filename = opendir_dl.utils.url_to_filename(parsed_url)
+        self.assertEquals("filename.txt", parsed_filename)
 
 class HttpHeadTest(unittest.TestCase):
     """Tests opendir_dl.utils.HttpHead
@@ -151,3 +140,12 @@ class BadAnchorTest(unittest.TestCase):
         href = "?C=M;O=A"
         is_bad = opendir_dl.utils.bad_anchor(href)
         self.assertTrue(is_bad)
+
+class PageCrawlerTest(unittest.TestCase):
+    pass
+
+class DatabaseWrapper(unittest.TestCase):
+    pass
+
+class SearchEngineTest(unittest.TestCase):
+    pass
