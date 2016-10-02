@@ -1,6 +1,6 @@
 # opendir-dl
 [![Build Status](https://travis-ci.org/bplower/opendir-dl.svg?branch=master)](https://travis-ci.org/bplower/opendir-dl)
-
+[![Coverage Status](https://coveralls.io/repos/github/bplower/opendir-dl/badge.svg?branch=master)](https://coveralls.io/github/bplower/opendir-dl?branch=master)
 
 This is an indexer and downloader for open directories.
 
