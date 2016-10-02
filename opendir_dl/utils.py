@@ -90,19 +90,11 @@ class PageCrawler(object):
                 continue
             if head.is_html() and not head.last_modified:
                 # If the content type is "text/html", and does not have a
-                # "last-modified" date, then it's a page we want to crawl. If
-                # the page has a "last-modified" date, it is a static file
-                # rather than one that was generated as part of the directory.
-                # Append the url to the index_urls list for another method to
-                # handle.
+                # "last-modified" date, then it's a page we want to crawl.
                 self.index_urls.append(url)
             else:
                 # The content type indicates it is some sort of file, so we
-                # should add it to the database. Here we're attaching the URL
-                # to the dictionary containing the head request data. The key
-                # is prefixed with "oddl_" to prevent any collision with data
-                # that may already be in the dictionary (unlikely, but just
-                # in case)
+                # should add it to the index database.
                 self.file_heads.append(head)
 
     def triage_quick(self):
@@ -129,7 +121,7 @@ class PageCrawler(object):
             # associated with it (domain/name/last_modified), and then make the
             # RemoteFile object.
             head = self.file_heads.pop(0)
-            self.db_conn.add(head.as_remotefile())
+            save_head(self.db_conn, head.as_remotefile(), commit=False)
             print "Found file: %s" % head.url
         # Now that the looping has finished, commit our new objects to the
         # database. TODO: Depending how how the database session works,
@@ -273,6 +265,8 @@ class HttpHead(object):
     def __init__(self, url, head_dict):
         self._last_modified = None
         self.url = url
+        self.name = url_to_filename(url)
+        self.domain = url_to_domain(url)
         self.status = head_dict.get("status", 0)
         self.content_type = head_dict.get("content-type", '')
         self.content_length = head_dict.get("content-length", 0)
@@ -302,9 +296,8 @@ class HttpHead(object):
         return self.content_type.startswith("text/html")
 
     def as_remotefile(self):
-        file_entry = RemoteFile(url=self.url, domain=url_to_domain(self.url),
-                                name=url_to_filename(self.url),
-                                content_type=self.content_type,
+        file_entry = RemoteFile(url=self.url, domain=self.domain,
+                                name=self.name, content_type=self.content_type,
                                 content_length=self.content_length,
                                 last_modified=self.last_modified,
                                 last_indexed=self.last_indexed)
@@ -334,8 +327,7 @@ class DownloadManager(object):
         write_file(filename, response[1])
         # Create an index entry for the file
         head = HttpHead(url, response[0])
-        self.db_wrapper.db_conn.add(head.as_remotefile())
-        self.db_wrapper.db_conn.commit()
+        save_head(self.db_wrapper.db_conn, head.as_remotefile())
 
     def download_id(self, pkid):
         query = self.db_wrapper.query(RemoteFile).get(int(pkid))
@@ -347,6 +339,35 @@ class DownloadManager(object):
                 self.download_url(item)
             elif isinstance(item, int) or item.isdigit():
                 self.download_id(item)
+
+def save_head(db_conn, head, commit=True):
+    """Saves RemoteFile object to database
+
+    Will save the give RemoteFile object (head) to the database referenced by
+    session db_conn. This checks to make sure the entry does not already exist
+    to prevent duplicate entries. If an existing record exists, it will be
+    updated.
+    """
+    filters = []
+    filters.append(RemoteFile.name.like("%%%s%%" % head.name))
+    filters.append(RemoteFile.url.like("%%%s%%" % head.url))
+    results = db_conn.query(RemoteFile).filter(sqlalchemy.and_(*filters))
+    if results.count() < 1:
+        # This entry hasn't been seen before. Save the new entry
+        db_conn.add(head)
+    elif results.count() == 1:
+        # The entry already exists, update the records
+        old_head = results.first()
+        old_head.content_type = head.content_type
+        old_head.content_length = head.content_length
+        old_head.last_modified = head.last_modified
+        old_head.last_indexed = head.last_indexed
+        print 'Updating pre-existing index'
+    else:
+        # There are multiple entries
+        print "There were multiple entires (this is bad). URL index not saved."
+    if commit:
+        db_conn.commit()
 
 def parse_urls(url, html):
     """Gets all useful urls on a page
@@ -415,17 +436,6 @@ def url_to_filename(url):
     if len(filename) == 0:
         filename = "index.html"
     return filename
-
-def download_url(db_wrapper, url):
-    filename = url_to_filename(url)
-    # Download the file
-    response = http_get(url)
-    # Save the file
-    write_file(filename, response[1])
-    # Create an index entry for the file
-    head = HttpHead(url, response[0])
-    db_wrapper.db_conn.add(head.as_remotefile())
-    db_wrapper.db_conn.commit()
 
 def write_file(filename, data):
     wfile = open(filename, 'w')
