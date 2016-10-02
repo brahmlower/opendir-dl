@@ -14,7 +14,8 @@ install:
   - pip install .
   
 script:
-  - nosetests --with-coverage --cover-package tests/
+  - nosetests tests/
+  - coverage run -m unittest tests.test_utils
 
 after_success:
   coveralls
