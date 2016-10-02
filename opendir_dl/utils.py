@@ -86,7 +86,7 @@ class PageCrawler(object):
             # Get the head information about the URL. This will be necessary
             # for deciding what to do with the resource (crawl it/database it)
             head = HttpHead.from_url(url)
-            if head.status != '200':
+            if head.status != 200:
                 continue
             if head.is_html() and not head.last_modified:
                 # If the content type is "text/html", and does not have a
