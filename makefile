@@ -17,4 +17,4 @@ clean_db:
 	rm sqllite3.db
 
 test:
-	nosetests tests/
+	nosetests --with-coverage --cover-package opendir_dl tests/

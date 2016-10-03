@@ -227,10 +227,9 @@ class SearchEngine(object):
         self.db_conn = db_conn
         self._exclusivity = sqlalchemy.and_
         self.filters = []
-        if not search_terms:
-            search_terms = []
-        for i in search_terms:
-            self.add_filter(i)
+        if search_terms != None:
+            for i in search_terms:
+                self.add_filter(i)
 
     @property
     def exclusive(self):
@@ -258,7 +257,7 @@ class SearchEngine(object):
         elif not db_conn:
             db_conn = self.db_conn
 
-        results = self.db_conn.query(RemoteFile).filter(self._exclusivity(*self.filters))
+        results = db_conn.query(RemoteFile).filter(self._exclusivity(*self.filters))
         return results.all()
 
 class HttpHead(object):

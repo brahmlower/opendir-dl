@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from urlparse import urlparse
 from datetime import datetime
+import sqlalchemy
 import opendir_dl
 
 class IsUrlTest(unittest.TestCase):
@@ -26,6 +27,10 @@ class IsUrlTest(unittest.TestCase):
 
     def test_invalid_unknown(self):
         url = ":/12/363p"
+        self.assertFalse(opendir_dl.utils.is_url(url))
+
+    def test_non_string(self):
+        url = 1235
         self.assertFalse(opendir_dl.utils.is_url(url))
 
 class UrlToFilenameTest(unittest.TestCase):
@@ -142,8 +147,10 @@ class BadAnchorTest(unittest.TestCase):
         is_bad = opendir_dl.utils.bad_anchor(href)
         self.assertTrue(is_bad)
 
-class PageCrawlerTest(unittest.TestCase):
-    pass
+    def test_leading_slash(self):
+        href = "/filename.txt"
+        is_bad = opendir_dl.utils.bad_anchor(href)
+        self.assertTrue(is_bad)
 
 class DatabaseWrapper(unittest.TestCase):
     def test_default_source(self):
@@ -181,14 +188,44 @@ class DatabaseWrapper(unittest.TestCase):
         self.assertTrue(db.is_connected())
         self.assertEquals(db.query(opendir_dl.utils.RemoteFile).count(), 1)
 
-#     def test_from_url(self):
-#         pass
+    def test_from_fs(self):
+        self_path = os.path.realpath(__file__)
+        cur_dir = "/".join(self_path.split("/")[:-1])
+        db_path = cur_dir + '/test_from_data.dat'
+        db = opendir_dl.utils.DatabaseWrapper.from_fs(db_path)
+        self.assertTrue(db.is_connected())
+        self.assertEquals(db.query(opendir_dl.utils.RemoteFile).count(), 1)
 
-#     def test_from_fs(self):
+#     def test_from_url(self):
 #         pass
 
 #     def test_from_unknown(self):
 #         pass
 
-# class SearchEngineTest(unittest.TestCase):
+# class PageCrawlerTest(unittest.TestCase):
 #     pass
+
+class SearchEngineTest(unittest.TestCase):
+    def test_query(self):
+        self_path = os.path.realpath(__file__)
+        cur_dir = "/".join(self_path.split("/")[:-1])
+        db_path = cur_dir + '/test_from_data.dat'
+        db = opendir_dl.utils.DatabaseWrapper.from_fs(db_path)
+        search = opendir_dl.utils.SearchEngine(db, ['example'])
+        self.assertTrue(len(search.filters), 1)
+        results = search.query()
+        self.assertEquals(len(results), 1)
+
+    def test_exclusivity(self):
+        search = opendir_dl.utils.SearchEngine()
+        self.assertTrue(search.exclusive)
+        self.assertEquals(search.__dict__['_exclusivity'], sqlalchemy.and_)
+        search.exclusive = False
+        self.assertFalse(search.exclusive)
+        self.assertEquals(search.__dict__['_exclusivity'], sqlalchemy.or_)
+
+    def test_db_missing(self):
+        search = opendir_dl.utils.SearchEngine()
+        search.add_filter("test")
+        with self.assertRaises(ValueError) as context:
+            search.query()
