@@ -6,6 +6,8 @@ from opendir_dl.commands import command_download
 class ParseInput(object):
     available_flags = ["inclusive", "quick", "quiet", "search"]
     available_options = ["depth", "db"]
+    available_commands = {"help": command_help, "index": command_index,
+        "search": command_search, "download": command_download }
     def __init__(self):
         """Default values for the types of input
 
@@ -19,14 +21,28 @@ class ParseInput(object):
         self.command_values = []
 
     def add_flag(self, flag):
-        #TODO: Raise error if flag not in available_flags
-        #TODO: Define new error to assist with reporting error to user
-        if flag not in self.flags:
-            self.flags.append(flag)
+        # Make sure that the flag is an actual flag first
+        if flag in self.available_flags:
+            # Now make sure we haven't already added this flag
+            if flag not in self.flags:
+                self.flags.append(flag)
+        else:
+            message = "No such flag '%s'. Run 'help' for available flags." % flag
+            raise ValueError(message)
 
     def add_option(self, option, value):
-        #TODO: Check if option in available_options. Raise error if not
-        self.options[option] = value
+        if option in self.available_options:
+            self.options[option] = value
+        else:
+            message = "No such option '%s'. Run 'help' for available options." % option
+            raise ValueError(message)
+
+    def set_command(self, command):
+        if self.available_commands.get(command, None):
+            self.command = self.available_commands[command]
+        else:
+            message = "No such command '%s'. Run 'help' for available commands." % command
+            raise ValueError(message)
 
     @classmethod
     def from_list(cls, input_list):
@@ -36,7 +52,7 @@ class ParseInput(object):
         # Assign command, return if none specified
         if len(input_list) == 0:
             return clean_input
-        clean_input.command = input_list.pop(0)
+        clean_input.set_command(input_list.pop(0))
         # Process options and flags
         # For more information on handling_option, see the first if statement
         # in the for loop
@@ -86,16 +102,5 @@ def main(raw_user_in):
     The the first example is run from the commandline, where the second example
     is run from a python shell. the result of these two examples is the same.
     """
-    #TODO: Move this into the parse input so it can detect invalid commands
-    command_dict = {
-        "help": command_help,
-        "index": command_index,
-        "search": command_search,
-        "download": command_download,
-    }
     user_in = ParseInput.from_list(raw_user_in)
-    try:
-        command = command_dict[user_in.command]
-    except KeyError:
-        command = command_dict["help"]
-    command(user_in.command_values, user_in.flags, user_in.options)
+    user_in.command(user_in.command_values, user_in.flags, user_in.options)

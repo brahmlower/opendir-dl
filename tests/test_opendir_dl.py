@@ -11,17 +11,23 @@ class TestParseInput(unittest.TestCase):
         self.assertEqual(parsed_input.command, "help")
         self.assertEqual(parsed_input.command_values, [])
 
-    def test_unreal_command(self):
-        parsed_input = opendir_dl.ParseInput.from_list(["unittest"])
-        self.assertEqual(parsed_input.command, "help")
-
-    def test_flag_option_command(self):
+    def test_list_each(self):
         input_args = ["index", "--quiet", "--depth", 50, "http://localhost/"]
         parsed_input = opendir_dl.ParseInput.from_list(input_args)
         self.assertEqual(parsed_input.flags, ["quiet"])
         self.assertEqual(parsed_input.options, {"depth": 50})
-        self.assertEqual(parsed_input.command, "index")
+        self.assertEqual(parsed_input.command, opendir_dl.commands.command_index)
         self.assertEqual(parsed_input.command_values, ["http://localhost/"])
+
+    def test_set_command(self):
+        parsed_input = opendir_dl.ParseInput()
+        parsed_input.set_command("download")
+        self.assertEqual(parsed_input.command, opendir_dl.commands.command_download)
+
+    def test_set_nonreal_command(self):
+        parsed_input = opendir_dl.ParseInput()
+        with self.assertRaises(ValueError) as context:
+            parsed_input.set_command("nonrealcommand")
 
     def test_add_flag(self):
         parsed_input = opendir_dl.ParseInput()
