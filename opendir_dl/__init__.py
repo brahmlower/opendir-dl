@@ -18,8 +18,18 @@ class ParseInput(object):
         self.options = {}
         self.command_values = []
 
+    def add_flag(self, flag):
+        #TODO: Raise error if flag not in available_flags
+        #TODO: Define new error to assist with reporting error to user
+        if flag not in self.flags:
+            self.flags.append(flag)
+
+    def add_option(self, option, value):
+        #TODO: Check if option in available_options. Raise error if not
+        self.options[option] = value
+
     @classmethod
-    def new(cls, input_list):
+    def from_list(cls, input_list):
         """Create an instance of ParseInput with clean data
         """
         clean_input = cls()
@@ -41,28 +51,29 @@ class ParseInput(object):
             # associate that value with the values we're currently handling
             # within the self.options dictionary
             if handling_option:
-                clean_input.options[handling_option] = val
+                clean_input.add_option(handling_option, val)
                 handling_option = None
                 continue
             # Check if the value is a flag
             if val[0] == "-" and val.strip("-") in cls.available_flags:
-                clean_input.flags.append(val.strip("-"))
+                cleaned_flag = val.strip("-")
+                clean_input.add_flag(cleaned_flag)
                 continue
             # Check if the value is an option
             if val[0] == "-" and val.strip("-") in cls.available_options:
                 handling_option = val.strip("-")
                 continue
-            # Reach this statement means everything from this index to the end
-            # of the list should be treated as command values. We will assume
-            # it's all command values. Add it to the list, then break out of
-            # the loop
+            # Reaching this statement means everything from this index to the
+            # end of the list should be treated as command values. We will
+            # assume it's all command values. Add it to the list, then break
+            # out of the loop
             else:
                 clean_input.command_values = input_list[idx:]
                 break
         # Return the new parsed input object
         return clean_input
 
-def main(input_list):
+def main(raw_user_in):
     """The main function for handling any provided input
 
     Consider the following two examples
@@ -75,18 +86,16 @@ def main(input_list):
     The the first example is run from the commandline, where the second example
     is run from a python shell. the result of these two examples is the same.
     """
+    #TODO: Move this into the parse input so it can detect invalid commands
     command_dict = {
         "help": command_help,
         "index": command_index,
         "search": command_search,
         "download": command_download,
     }
-    clean_input = ParseInput.new(input_list)
+    user_in = ParseInput.from_list(raw_user_in)
     try:
-        command = command_dict[clean_input.command]
+        command = command_dict[user_in.command]
     except KeyError:
         command = command_dict["help"]
-    input_flags = clean_input.flags
-    input_options = clean_input.options
-    input_values = clean_input.command_values
-    command(input_values, input_flags, input_options)
+    command(user_in.command_values, user_in.flags, user_in.options)
