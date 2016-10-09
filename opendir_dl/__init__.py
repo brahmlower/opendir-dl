@@ -15,7 +15,7 @@ class ParseInput(object):
         will not break anything. The default command is set to 'help' allowing
         us to run `opendir-dl` and get the help menu.
         """
-        self.command = "help"
+        self.command = self.available_commands["help"]
         self.flags = []
         self.options = {}
         self.command_values = []

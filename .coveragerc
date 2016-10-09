@@ -1,0 +1,3 @@
+[run]
+omit =
+    opendir_dl/__main__

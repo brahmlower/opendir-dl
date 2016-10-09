@@ -8,7 +8,7 @@ class TestParseInput(unittest.TestCase):
         parsed_input = opendir_dl.ParseInput.from_list([])
         self.assertEqual(parsed_input.flags, [])
         self.assertEqual(parsed_input.options, {})
-        self.assertEqual(parsed_input.command, "help")
+        self.assertEqual(parsed_input.command, opendir_dl.commands.command_help)
         self.assertEqual(parsed_input.command_values, [])
 
     def test_list_each(self):
@@ -48,3 +48,10 @@ class TestParseInput(unittest.TestCase):
         parsed_input = opendir_dl.ParseInput()
         with self.assertRaises(ValueError) as context:
             parsed_input.add_option("unittest", False)
+
+class TestMain(unittest.TestCase):
+    def test_no_args(self):
+        opendir_dl.main([])
+
+    def test_arg_list(self):
+        opendir_dl.main(["search", "--inclusive" "test"])
