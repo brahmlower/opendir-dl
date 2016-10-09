@@ -1,3 +1,4 @@
+import os
 import unittest
 import opendir_dl
 from . import ThreadedHTTPServer
@@ -26,6 +27,7 @@ class TestCommandDownload(unittest.TestCase):
         server.start()
         try:
             url = "http://localhost:8000/"
-            opendir_dl.commands.command_index(["http://localhost:8000/tests/test_from_date.dat"], [], {})
+            opendir_dl.commands.command_download(["http://localhost:8000/tests/test_from_date.dat"], [], {})
+            os.remove("test_from_date.dat")
         finally:
             server.stop()
