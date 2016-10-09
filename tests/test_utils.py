@@ -6,6 +6,8 @@ from datetime import datetime
 import sqlalchemy
 import opendir_dl
 
+from . import ThreadedHTTPServer
+
 class IsUrlTest(unittest.TestCase):
     """Tests opendir_dl.utils.is_url
     """
@@ -65,8 +67,8 @@ class HttpHeadTest(unittest.TestCase):
     def test_normal_head(self):
         url = "http://example.com/dir/"
         head_dict = {"status": '200', "content-type": 'text/plain',
-            "content-length": '500',
-            "last-modified": "Mon, 16 Jan 2006 16:30:19 GMT"}
+                     "content-length": '500',
+                     "last-modified": "Mon, 16 Jan 2006 16:30:19 GMT"}
         head = opendir_dl.utils.HttpHead(url, head_dict)
         self.assertTrue(isinstance(head, opendir_dl.utils.HttpHead))
         self.assertEquals(head.url, url)
@@ -91,8 +93,8 @@ class HttpHeadTest(unittest.TestCase):
     def test_html_content_type(self):
         url = "http://example.com/dir/"
         head_dict = {"status": '200', "content-type": 'text/html some info',
-            "content-length": '500',
-            "last-modified": "Mon, 16 Jan 2006 16:30:19 GMT"}
+                     "content-length": '500',
+                     "last-modified": "Mon, 16 Jan 2006 16:30:19 GMT"}
         head = opendir_dl.utils.HttpHead(url, head_dict)
         self.assertTrue(isinstance(head, opendir_dl.utils.HttpHead))
         self.assertTrue(head.is_html())
@@ -100,8 +102,8 @@ class HttpHeadTest(unittest.TestCase):
     def test_as_remotefile(self):
         url = "http://example.com/dir/"
         head_dict = {"status": '200', "content-type": 'text/html some info',
-            "content-length": '500',
-            "last-modified": "Mon, 16 Jan 2006 16:30:19 GMT"}
+                     "content-length": '500',
+                     "last-modified": "Mon, 16 Jan 2006 16:30:19 GMT"}
         head = opendir_dl.utils.HttpHead(url, head_dict)
         self.assertTrue(isinstance(head, opendir_dl.utils.HttpHead))
         self.assertTrue(isinstance(head.as_remotefile(), opendir_dl.utils.RemoteFile))
@@ -196,14 +198,39 @@ class DatabaseWrapper(unittest.TestCase):
         self.assertTrue(db.is_connected())
         self.assertEquals(db.query(opendir_dl.utils.RemoteFile).count(), 1)
 
-#     def test_from_url(self):
-#         pass
+    def test_from_url(self):
+        server = ThreadedHTTPServer("localhost", 8000)
+        server.start()
+        try:
+            url = "http://localhost:8000/tests/test_from_data.dat"
+            db = opendir_dl.utils.DatabaseWrapper.from_url(url)
+        finally:
+            # We have to clean up the webserver regardless of any unexpected issues
+            server.stop()
+        self.assertTrue(db.is_connected())
+        self.assertEquals(db.query(opendir_dl.utils.RemoteFile).count(), 1)
 
 #     def test_from_unknown(self):
 #         pass
 
-# class PageCrawlerTest(unittest.TestCase):
-#     pass
+class PageCrawlerTest(unittest.TestCase):
+    def test_default_triage_method(self):
+        db = opendir_dl.utils.DatabaseWrapper('')
+        db.connect()
+        crawler = opendir_dl.utils.PageCrawler(db, ["http://localhost/"])
+        self.assertFalse(crawler.quick)
+        self.assertEquals(crawler.__dict__['_triage_method'], crawler.triage_standard)
+
+    def test_change_triage_method(self):
+        db = opendir_dl.utils.DatabaseWrapper('')
+        db.connect()
+        crawler = opendir_dl.utils.PageCrawler(db, ["http://localhost/"])
+        crawler.quick = True
+        self.assertTrue(crawler.quick)
+        self.assertEquals(crawler.__dict__['_triage_method'], crawler.triage_quick)
+        crawler.quick = False
+        self.assertFalse(crawler.quick)
+        self.assertEquals(crawler.__dict__['_triage_method'], crawler.triage_standard)
 
 class SearchEngineTest(unittest.TestCase):
     def test_query(self):
@@ -229,3 +256,13 @@ class SearchEngineTest(unittest.TestCase):
         search.add_filter("test")
         with self.assertRaises(ValueError) as context:
             search.query()
+
+class TestHttpGet(unittest.TestCase):
+    def test_localhost(self):
+        server = ThreadedHTTPServer("localhost", 8000)
+        server.start()
+        try:
+            response = opendir_dl.utils.http_get("http://localhost:8000/")
+        finally:
+            server.stop()
+        self.assertEquals(response[0]["status"], '200')

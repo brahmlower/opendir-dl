@@ -7,7 +7,7 @@ class ParseInput(object):
     available_flags = ["inclusive", "quick", "quiet", "search"]
     available_options = ["depth", "db"]
     available_commands = {"help": command_help, "index": command_index,
-        "search": command_search, "download": command_download }
+                          "search": command_search, "download": command_download}
     def __init__(self):
         """Default values for the types of input
 

@@ -201,7 +201,12 @@ class DatabaseWrapper(object):
     def from_url(cls, url):
         """ Gets a database session from a URL
         """
-        return cls.from_data(http_get(url)[1])
+        response = http_get(url)
+        if response[0]['status'] == '200':
+            return cls.from_data(response[1])
+        else:
+            message = "HTTP GET request failed with error '%s'. Expected '200'." % response[0]['status']
+            raise ValueError(message)
 
     @classmethod
     def from_unknown(cls, source_string=None):
