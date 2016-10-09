@@ -5,7 +5,7 @@ from opendir_dl.utils import SearchEngine
 from opendir_dl.utils import PageCrawler
 from opendir_dl.utils import DownloadManager
 
-def command_help(input_values, input_flags, input_options): #pylint: disable=unused-argument
+def command_help(*args):#input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl help` is called
     """
     self_path = os.path.realpath(__file__)

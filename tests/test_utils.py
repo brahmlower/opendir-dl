@@ -5,7 +5,6 @@ from urlparse import urlparse
 from datetime import datetime
 import sqlalchemy
 import opendir_dl
-
 from . import ThreadedHTTPServer
 
 class IsUrlTest(unittest.TestCase):
