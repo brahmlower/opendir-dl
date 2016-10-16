@@ -13,21 +13,20 @@ class TestCommandIndex(unittest.TestCase):
         server.start()
         try:
             url = "http://localhost:8000/"
-            opendir_dl.commands.command_index(["http://localhost:8000/"], [], {})
+            opendir_dl.commands.command_index([server.url], [], {})
         finally:
             server.stop()
 
 class TestCommandSearch(unittest.TestCase):
     def test_no_args(self):
-        opendir_dl.commands.command_search([], [], {"db": "tests/test_from_data.dat"})
+        opendir_dl.commands.command_search([], [], {"db": "test_from_data.dat"})
 
 class TestCommandDownload(unittest.TestCase):
     def test_no_args(self):
         server = ThreadedHTTPServer("localhost", 8000)
         server.start()
         try:
-            url = "http://localhost:8000/"
-            opendir_dl.commands.command_download(["http://localhost:8000/tests/test_from_date.dat"], [], {})
+            opendir_dl.commands.command_download(["%stest_from_date.dat" % server.url], [], {})
             os.remove("test_from_date.dat")
         finally:
             server.stop()

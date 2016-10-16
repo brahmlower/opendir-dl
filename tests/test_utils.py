@@ -201,7 +201,7 @@ class DatabaseWrapper(unittest.TestCase):
         server = ThreadedHTTPServer("localhost", 8000)
         server.start()
         try:
-            url = "http://localhost:8000/tests/test_from_data.dat"
+            url = "%stest_from_data.dat" % server.url
             db = opendir_dl.utils.DatabaseWrapper.from_url(url)
         finally:
             # We have to clean up the webserver regardless of any unexpected issues

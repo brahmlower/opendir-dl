@@ -18,6 +18,7 @@ class ThreadedHTTPServer(object):
         self.server = SocketServer.TCPServer((host, port), QuietSimpleHTTPRequestHandler)
         self.server_thread = threading.Thread(target=self.server.serve_forever)
         self.server_thread.daemon = True
+        self.url = "http://%s:%d/" % (host, port)
 
     def start(self):
         self.server_thread.start()
