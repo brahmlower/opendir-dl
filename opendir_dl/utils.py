@@ -5,28 +5,10 @@ from datetime import datetime
 import httplib2
 from bs4 import BeautifulSoup
 import sqlalchemy
-from sqlalchemy import Column
-from sqlalchemy import String
-from sqlalchemy import Integer
-from sqlalchemy import DateTime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-
-MODELBASE = declarative_base()
-
-class RemoteFile(MODELBASE):
-    """This represents a remote file
-    """
-    __tablename__ = "remotefile"
-    pkid = Column(Integer, primary_key=True)
-    url = Column(String)
-    name = Column(String)
-    domain = Column(String)
-    last_indexed = Column(DateTime)
-    content_type = Column(String)
-    last_modified = Column(DateTime)
-    content_length = Column(Integer)
+from opendir_dl.models import MODELBASE
+from opendir_dl.models import RemoteFile
 
 class PageCrawler(object):
     def __init__(self, db_conn, input_urls):
@@ -270,7 +252,7 @@ class HttpHead(object):
         self._last_modified = None
         parsed_url = urlparse.urlparse(url)
         self.url = unicode(url)
-        self.name = unicode(url_to_filename(url), errors='ignore')
+        self.name = url_to_filename(self.url)
         self.domain = unicode(parsed_url.hostname)
         self.status = int(head_dict.get("status", 0))
         self.content_type = unicode(head_dict.get("content-type", ''))

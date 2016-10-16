@@ -182,32 +182,32 @@ class DatabaseWrapper(unittest.TestCase):
     def test_from_data(self):
         self_path = os.path.realpath(__file__)
         cur_dir = "/".join(self_path.split("/")[:-1])
-        rfile = open(cur_dir + '/test_from_data.dat', 'rb')
+        rfile = open(cur_dir + '/test_resources/sqlite3.db', 'rb')
         data = rfile.read()
         rfile.close()
         db = opendir_dl.utils.DatabaseWrapper.from_data(data)
         self.assertTrue(db.is_connected())
-        self.assertEquals(db.query(opendir_dl.utils.RemoteFile).count(), 1)
+        self.assertEquals(db.query(opendir_dl.utils.RemoteFile).count(), 12)
 
     def test_from_fs(self):
         self_path = os.path.realpath(__file__)
         cur_dir = "/".join(self_path.split("/")[:-1])
-        db_path = cur_dir + '/test_from_data.dat'
+        db_path = cur_dir + '/test_resources/sqlite3.db'
         db = opendir_dl.utils.DatabaseWrapper.from_fs(db_path)
         self.assertTrue(db.is_connected())
-        self.assertEquals(db.query(opendir_dl.utils.RemoteFile).count(), 1)
+        self.assertEquals(db.query(opendir_dl.utils.RemoteFile).count(), 12)
 
     def test_from_url(self):
         server = ThreadedHTTPServer("localhost", 8000)
         server.start()
         try:
-            url = "%stest_from_data.dat" % server.url
+            url = "%stest_resources/sqlite3.db" % server.url
             db = opendir_dl.utils.DatabaseWrapper.from_url(url)
         finally:
             # We have to clean up the webserver regardless of any unexpected issues
             server.stop()
         self.assertTrue(db.is_connected())
-        self.assertEquals(db.query(opendir_dl.utils.RemoteFile).count(), 1)
+        self.assertEquals(db.query(opendir_dl.utils.RemoteFile).count(), 12)
 
 #     def test_from_unknown(self):
 #         pass
@@ -235,7 +235,7 @@ class SearchEngineTest(unittest.TestCase):
     def test_query(self):
         self_path = os.path.realpath(__file__)
         cur_dir = "/".join(self_path.split("/")[:-1])
-        db_path = cur_dir + '/test_from_data.dat'
+        db_path = cur_dir + '/test_resources/sqlite3.db'
         db = opendir_dl.utils.DatabaseWrapper.from_fs(db_path)
         search = opendir_dl.utils.SearchEngine(db, ['example'])
         self.assertTrue(len(search.filters), 1)
@@ -261,7 +261,7 @@ class TestHttpGet(unittest.TestCase):
         server = ThreadedHTTPServer("localhost", 8000)
         server.start()
         try:
-            response = opendir_dl.utils.http_get("http://localhost:8000/")
+            response = opendir_dl.utils.http_get(server.url)
         finally:
             server.stop()
         self.assertEquals(response[0]["status"], '200')

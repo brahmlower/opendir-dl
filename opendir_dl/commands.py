@@ -5,7 +5,7 @@ from opendir_dl.utils import SearchEngine
 from opendir_dl.utils import PageCrawler
 from opendir_dl.utils import DownloadManager
 
-def command_help(*args):#input_values, input_flags, input_options): #pylint: disable=unused-argument
+def help(*args):#input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl help` is called
     """
     self_path = os.path.realpath(__file__)
@@ -14,7 +14,7 @@ def command_help(*args):#input_values, input_flags, input_options): #pylint: dis
     print rfile.read()
     rfile.close()
 
-def command_index(input_values, input_flags, input_options): #pylint: disable=unused-argument
+def index(input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl index` is called
     """
     db_wrapper = DatabaseWrapper.from_default()
@@ -23,7 +23,7 @@ def command_index(input_values, input_flags, input_options): #pylint: disable=un
     crawler.reindex = input_options.get("reindex", None)
     crawler.crawl()
 
-def command_search(input_values, input_flags, input_options): #pylint: disable=unused-argument
+def search(input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl search` is called
     """
     db_wrapper = DatabaseWrapper.from_unknown(input_options.get('db', None))
@@ -39,7 +39,7 @@ def command_search(input_values, input_flags, input_options): #pylint: disable=u
         output_table.add_row([i.pkid, i.name, i.url])
     print output_table
 
-def command_download(input_values, input_flags, input_options): #pylint: disable=unused-argument
+def download(input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl download` is called
     """
     db_wrapper = DatabaseWrapper.from_unknown(input_options.get('db', None))

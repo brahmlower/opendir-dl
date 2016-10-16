@@ -12,9 +12,10 @@ lint:
 
 clean:
 	rm opendir_dl/*.pyc
+	rm tests/*.pyc
 
 clean_db:
-	rm sqllite3.db
+	rm sqlite3.db
 
 test:
 	nosetests

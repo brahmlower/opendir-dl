@@ -1,13 +1,10 @@
-from opendir_dl.commands import command_help
-from opendir_dl.commands import command_index
-from opendir_dl.commands import command_search
-from opendir_dl.commands import command_download
+from opendir_dl import commands
 
 class ParseInput(object):
     available_flags = ["inclusive", "quick", "quiet", "search"]
     available_options = ["depth", "db"]
-    available_commands = {"help": command_help, "index": command_index,
-                          "search": command_search, "download": command_download}
+    available_commands = {"help": commands.help, "index": commands.index,
+                          "search": commands.search, "download": commands.download}
     def __init__(self):
         """Default values for the types of input
 
@@ -97,7 +94,7 @@ def main(raw_user_in):
         user@debian:~$ opendir-dl index --quiet http://localhost:8000/
 
         >>> import opendir_dl
-        >>> opendir_dl.main(["index", "--quiet", "http://localhost:8000/""])
+        >>> opendir_dl.main(["index", "--quiet", "http://localhost:8000/"])
 
     The the first example is run from the commandline, where the second example
     is run from a python shell. the result of these two examples is the same.
