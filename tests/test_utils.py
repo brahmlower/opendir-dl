@@ -182,7 +182,7 @@ class DatabaseWrapper(unittest.TestCase):
     def test_from_data(self):
         self_path = os.path.realpath(__file__)
         cur_dir = "/".join(self_path.split("/")[:-1])
-        rfile = open(cur_dir + '/test_resources/sqlite3.db', 'rb')
+        rfile = open(cur_dir + '/test_resources/test_sqlite3.db', 'rb')
         data = rfile.read()
         rfile.close()
         db = opendir_dl.utils.DatabaseWrapper.from_data(data)
@@ -192,7 +192,7 @@ class DatabaseWrapper(unittest.TestCase):
     def test_from_fs(self):
         self_path = os.path.realpath(__file__)
         cur_dir = "/".join(self_path.split("/")[:-1])
-        db_path = cur_dir + '/test_resources/sqlite3.db'
+        db_path = cur_dir + '/test_resources/test_sqlite3.db'
         db = opendir_dl.utils.DatabaseWrapper.from_fs(db_path)
         self.assertTrue(db.is_connected())
         self.assertEquals(db.query(opendir_dl.utils.RemoteFile).count(), 12)
@@ -201,7 +201,7 @@ class DatabaseWrapper(unittest.TestCase):
         server = ThreadedHTTPServer("localhost", 8000)
         server.start()
         try:
-            url = "%stest_resources/sqlite3.db" % server.url
+            url = "%stest_resources/test_sqlite3.db" % server.url
             db = opendir_dl.utils.DatabaseWrapper.from_url(url)
         finally:
             # We have to clean up the webserver regardless of any unexpected issues
@@ -235,7 +235,7 @@ class SearchEngineTest(unittest.TestCase):
     def test_query(self):
         self_path = os.path.realpath(__file__)
         cur_dir = "/".join(self_path.split("/")[:-1])
-        db_path = cur_dir + '/test_resources/sqlite3.db'
+        db_path = cur_dir + '/test_resources/test_sqlite3.db'
         db = opendir_dl.utils.DatabaseWrapper.from_fs(db_path)
         search = opendir_dl.utils.SearchEngine(db, ['example'])
         self.assertTrue(len(search.filters), 1)

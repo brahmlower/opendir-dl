@@ -18,15 +18,15 @@ class TestCommandIndex(unittest.TestCase):
 
 class TestCommandSearch(unittest.TestCase):
     def test_no_args(self):
-        opendir_dl.commands.search([], [], {"db": "test_resources/sqlite3.db"})
+        opendir_dl.commands.search([], [], {"db": "test_resources/test_sqlite3.db"})
 
 class TestCommandDownload(unittest.TestCase):
     def test_no_args(self):
         server = ThreadedHTTPServer("localhost", 8000)
         server.start()
         try:
-            opendir_dl.commands.download(["%stest_resources/sqlite3.db" % server.url], [], {})
-            os.remove("sqlite3.db")
+            opendir_dl.commands.download(["%stest_resources/test_sqlite3.db" % server.url], [], {})
+            os.remove("test_sqlite3.db")
         finally:
             server.stop()
 
@@ -34,7 +34,7 @@ class TestCommandDownload(unittest.TestCase):
         server = ThreadedHTTPServer("localhost", 8000)
         server.start()
         try:
-            opendir_dl.commands.download(["example_file"], ["search"], {"db": "%stest_resources/sqlite3.db" % server.url})
+            opendir_dl.commands.download(["example_file"], ["search"], {"db": "%stest_resources/test_sqlite3.db" % server.url})
             os.remove("example_file.txt")
         finally:
             server.stop()
