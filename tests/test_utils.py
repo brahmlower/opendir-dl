@@ -1,4 +1,5 @@
 import os
+import appdirs
 import tempfile
 import unittest
 from urlparse import urlparse
@@ -98,14 +99,14 @@ class HttpHeadTest(unittest.TestCase):
         self.assertTrue(isinstance(head, opendir_dl.utils.HttpHead))
         self.assertTrue(head.is_html())
 
-    def test_as_remotefile(self):
+    def test_as_fileindex(self):
         url = "http://example.com/dir/"
         head_dict = {"status": '200', "content-type": 'text/html some info',
                      "content-length": '500',
                      "last-modified": "Mon, 16 Jan 2006 16:30:19 GMT"}
         head = opendir_dl.utils.HttpHead(url, head_dict)
         self.assertTrue(isinstance(head, opendir_dl.utils.HttpHead))
-        self.assertTrue(isinstance(head.as_remotefile(), opendir_dl.utils.RemoteFile))
+        self.assertTrue(isinstance(head.as_fileindex(), opendir_dl.utils.FileIndex))
 
 class ParseUrlsTest(unittest.TestCase):
     """Tests opendir_dl.utils.url_to_domain
@@ -154,8 +155,8 @@ class BadAnchorTest(unittest.TestCase):
         self.assertTrue(is_bad)
 
 class DatabaseWrapper(unittest.TestCase):
-    def test_default_source(self):
-        db = opendir_dl.utils.DatabaseWrapper()
+    def test_provided_source(self):
+        db = opendir_dl.utils.DatabaseWrapper("sqlite3.db")
         self.assertEquals(db.source, "sqlite3.db")
         db.connect()
         self.assertTrue(db.is_connected())
@@ -177,7 +178,8 @@ class DatabaseWrapper(unittest.TestCase):
     def test_from_default(self):
         db = opendir_dl.utils.DatabaseWrapper.from_default()
         self.assertTrue(db.is_connected())
-        self.assertEquals(str(db.db_conn.bind.url), 'sqlite:///sqlite3.db')
+        db_path = appdirs.user_data_dir('opendir-dl') + "/default.db"
+        self.assertEquals(str(db.db_conn.bind.url), 'sqlite:///%s' % db_path)
 
     def test_from_data(self):
         self_path = os.path.realpath(__file__)
@@ -187,7 +189,7 @@ class DatabaseWrapper(unittest.TestCase):
         rfile.close()
         db = opendir_dl.utils.DatabaseWrapper.from_data(data)
         self.assertTrue(db.is_connected())
-        self.assertEquals(db.query(opendir_dl.utils.RemoteFile).count(), 12)
+        self.assertEquals(db.query(opendir_dl.utils.FileIndex).count(), 12)
 
     def test_from_fs(self):
         self_path = os.path.realpath(__file__)
@@ -195,7 +197,7 @@ class DatabaseWrapper(unittest.TestCase):
         db_path = cur_dir + '/test_resources/test_sqlite3.db'
         db = opendir_dl.utils.DatabaseWrapper.from_fs(db_path)
         self.assertTrue(db.is_connected())
-        self.assertEquals(db.query(opendir_dl.utils.RemoteFile).count(), 12)
+        self.assertEquals(db.query(opendir_dl.utils.FileIndex).count(), 12)
 
     def test_from_url(self):
         server = ThreadedHTTPServer("localhost", 8000)
@@ -207,7 +209,7 @@ class DatabaseWrapper(unittest.TestCase):
             # We have to clean up the webserver regardless of any unexpected issues
             server.stop()
         self.assertTrue(db.is_connected())
-        self.assertEquals(db.query(opendir_dl.utils.RemoteFile).count(), 12)
+        self.assertEquals(db.query(opendir_dl.utils.FileIndex).count(), 12)
 
 #     def test_from_unknown(self):
 #         pass

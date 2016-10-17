@@ -1,3 +1,4 @@
+import os
 import urllib
 import tempfile
 import urlparse
@@ -7,8 +8,9 @@ from bs4 import BeautifulSoup
 import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import appdirs
 from opendir_dl.models import MODELBASE
-from opendir_dl.models import RemoteFile
+from opendir_dl.models import FileIndex
 
 class PageCrawler(object):
     def __init__(self, db_conn, input_urls):
@@ -102,9 +104,9 @@ class PageCrawler(object):
         while len(self.file_heads) > 0:
             # For each head entry, pop it from the list, clean the values
             # associated with it (domain/name/last_modified), and then make the
-            # RemoteFile object.
+            # FileIndex object.
             head = self.file_heads.pop(0)
-            save_head(self.db_conn, head.as_remotefile(), commit=False)
+            save_head(self.db_conn, head.as_fileindex(), commit=False)
             print "Found file: %s" % head.url
         # Now that the looping has finished, commit our new objects to the
         # database. TODO: Depending how how the database session works,
@@ -112,15 +114,14 @@ class PageCrawler(object):
         self.db_conn.commit()
 
 class DatabaseWrapper(object):
-    default_db_path = 'sqlite3.db'
+    default_db = 'default.db'
 
-    def __init__(self, source=None):
+    def __init__(self, source):
+        if not os.path.exists(appdirs.user_data_dir('opendir-dl')):
+            os.mkdir(appdirs.user_data_dir('opendir-dl'))
         self.db_conn = None
         self.tempfile = None
-        if source != None:
-            self.source = source
-        else:
-            self.source = self.default_db_path
+        self.source = source
 
     def query(self, *args, **kwargs):
         # This is meant to be overwritten with a reference to
@@ -151,7 +152,8 @@ class DatabaseWrapper(object):
         This would be used over `DatabaseWrapper()` because this returns an
         object where self.db_conn is already an established database session
         """
-        dbw_inst = cls()
+        source = "%s/%s" % (appdirs.user_data_dir('opendir-dl'), cls.default_db)
+        dbw_inst = cls(source)
         dbw_inst.connect()
         return dbw_inst
 
@@ -171,11 +173,11 @@ class DatabaseWrapper(object):
     def from_data(cls, data):
         """Get an instance of DatabaseWrapper from the give raw data
         """
-        dbw_inst = cls()
-        dbw_inst.tempfile = tempfile.NamedTemporaryFile()
+        temp_file = tempfile.NamedTemporaryFile()
+        dbw_inst = cls(temp_file.name)
+        dbw_inst.tempfile = temp_file
         dbw_inst.tempfile.write(data)
         dbw_inst.tempfile.flush()
-        dbw_inst.source = dbw_inst.tempfile.name
         dbw_inst.connect()
         return dbw_inst
 
@@ -230,7 +232,7 @@ class SearchEngine(object):
             self._exclusivity = sqlalchemy.or_
 
     def add_filter(self, value):
-        self.filters.append(RemoteFile.name.like("%%%s%%" % value))
+        self.filters.append(FileIndex.name.like("%%%s%%" % value))
 
     def query(self, db_conn=None):
         # If the search engine wasn't provided a database, and the query wasn't
@@ -244,7 +246,7 @@ class SearchEngine(object):
         elif not db_conn:
             db_conn = self.db_conn
 
-        results = db_conn.query(RemoteFile).filter(self._exclusivity(*self.filters))
+        results = db_conn.query(FileIndex).filter(self._exclusivity(*self.filters))
         return results.all()
 
 class HttpHead(object):
@@ -282,8 +284,8 @@ class HttpHead(object):
         """
         return self.content_type.startswith("text/html")
 
-    def as_remotefile(self):
-        file_entry = RemoteFile(url=self.url, domain=self.domain,
+    def as_fileindex(self):
+        file_entry = FileIndex(url=self.url, domain=self.domain,
                                 name=self.name, content_type=self.content_type,
                                 content_length=self.content_length,
                                 last_modified=self.last_modified,
@@ -314,10 +316,10 @@ class DownloadManager(object):
         write_file(filename, response[1])
         # Create an index entry for the file
         head = HttpHead(url, response[0])
-        save_head(self.db_wrapper.db_conn, head.as_remotefile())
+        save_head(self.db_wrapper.db_conn, head.as_fileindex())
 
     def download_id(self, pkid):
-        query = self.db_wrapper.query(RemoteFile).get(int(pkid))
+        query = self.db_wrapper.query(FileIndex).get(int(pkid))
         self.download_url(query.url)
 
     def start(self):
@@ -328,17 +330,17 @@ class DownloadManager(object):
                 self.download_id(item)
 
 def save_head(db_conn, head, commit=True):
-    """Saves RemoteFile object to database
+    """Saves FileIndex object to database
 
-    Will save the give RemoteFile object (head) to the database referenced by
+    Will save the give FileIndex object (head) to the database referenced by
     session db_conn. This checks to make sure the entry does not already exist
     to prevent duplicate entries. If an existing record exists, it will be
     updated.
     """
     filters = []
-    filters.append(RemoteFile.name.like("%%%s%%" % head.name))
-    filters.append(RemoteFile.url.like("%%%s%%" % head.url))
-    results = db_conn.query(RemoteFile).filter(sqlalchemy.and_(*filters))
+    filters.append(FileIndex.name.like("%%%s%%" % head.name))
+    filters.append(FileIndex.url.like("%%%s%%" % head.url))
+    results = db_conn.query(FileIndex).filter(sqlalchemy.and_(*filters))
     if results.count() < 1:
         # This entry hasn't been seen before. Save the new entry
         db_conn.add(head)

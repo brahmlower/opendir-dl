@@ -9,7 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 MODELBASE = declarative_base()
 
-class RemoteFile(MODELBASE):
+class FileIndex(MODELBASE):
     """This represents a remote file
     """
     __tablename__ = "remotefile"
