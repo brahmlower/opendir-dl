@@ -15,7 +15,8 @@ clean:
 	rm tests/*.pyc
 
 clean_db:
-	rm sqlite3.db
+	rm -f sqlite3.db
+	rm -f tests/sqlite3.db
 
 test:
 	nosetests

@@ -16,6 +16,14 @@ class TestCommandIndex(unittest.TestCase):
         finally:
             server.stop()
 
+    def test_quick_index(self):
+        server = ThreadedHTTPServer("localhost", 8000)
+        server.start()
+        try:
+            opendir_dl.commands.index([server.url], ["quick"], {})
+        finally:
+            server.stop()
+
 class TestCommandSearch(unittest.TestCase):
     def test_no_args(self):
         opendir_dl.commands.search([], [], {"db": "test_resources/test_sqlite3.db"})
