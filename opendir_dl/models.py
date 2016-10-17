@@ -1,10 +1,7 @@
-import sqlalchemy
 from sqlalchemy import Column
 from sqlalchemy import String
 from sqlalchemy import Integer
 from sqlalchemy import DateTime
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
 MODELBASE = declarative_base()

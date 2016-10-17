@@ -2,13 +2,12 @@ import os
 import urllib
 import tempfile
 import urlparse
-from datetime import datetime
+import datetime
 import httplib2
+import appdirs
 from bs4 import BeautifulSoup
 import sqlalchemy
-from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import appdirs
 from opendir_dl.models import MODELBASE
 from opendir_dl.models import FileIndex
 
@@ -109,8 +108,9 @@ class PageCrawler(object):
             save_head(self.db_conn, head.as_fileindex(), commit=False)
             print "Found file: %s" % head.url
         # Now that the looping has finished, commit our new objects to the
-        # database. TODO: Depending how how the database session works,
-        # threading *might* cause a lot of problems here...
+        # database.
+        # TODO: Depending how how the database session works, threading *might*
+        # cause a lot of problems here...
         self.db_conn.commit()
 
 class DatabaseWrapper(object):
@@ -138,7 +138,7 @@ class DatabaseWrapper(object):
     def connect(self):
         """ Establish the database session given the set values
         """
-        database_engine = create_engine('sqlite:///%s' % self.source)
+        database_engine = sqlalchemy.create_engine('sqlite:///%s' % self.source)
         MODELBASE.metadata.create_all(database_engine)
         MODELBASE.metadata.bind = database_engine
         database_session = sessionmaker(bind=database_engine)
@@ -189,7 +189,8 @@ class DatabaseWrapper(object):
         if response[0]['status'] == '200':
             return cls.from_data(response[1])
         else:
-            message = "HTTP GET request failed with error '%s'. Expected '200'." % response[0]['status']
+            message = "HTTP GET request failed with error '%s'. Expected '200'." \
+                    % response[0]['status']
             raise ValueError(message)
 
     @classmethod
@@ -260,7 +261,7 @@ class HttpHead(object):
         self.content_type = unicode(head_dict.get("content-type", ''))
         self.content_length = int(head_dict.get("content-length", 0))
         self.last_modified = head_dict.get("last-modified", None)
-        self.last_indexed = datetime.utcnow()
+        self.last_indexed = datetime.datetime.utcnow()
 
     @property
     def last_modified(self):
@@ -269,7 +270,7 @@ class HttpHead(object):
     @last_modified.setter
     def last_modified(self, value):
         try:
-            self._last_modified = datetime.strptime(value, \
+            self._last_modified = datetime.datetime.strptime(value, \
                 "%a, %d %b %Y %H:%M:%S GMT")
         except ValueError:
             self._last_modified = None
@@ -286,10 +287,10 @@ class HttpHead(object):
 
     def as_fileindex(self):
         file_entry = FileIndex(url=self.url, domain=self.domain,
-                                name=self.name, content_type=self.content_type,
-                                content_length=self.content_length,
-                                last_modified=self.last_modified,
-                                last_indexed=self.last_indexed)
+                               name=self.name, content_type=self.content_type,
+                               content_length=self.content_length,
+                               last_modified=self.last_modified,
+                               last_indexed=self.last_indexed)
         return file_entry
 
     @classmethod
