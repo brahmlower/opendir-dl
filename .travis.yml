@@ -13,6 +13,7 @@ git:
   depth: 1
 
 install:
+  - pip install -U pip wheel
   - pip install coveralls
   - pip install nose
   - pip install .
