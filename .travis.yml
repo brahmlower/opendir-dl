@@ -13,6 +13,7 @@ git:
 install:
   - pip install coveralls
   - pip install nose
+  - pip install --use-wheel --no-index --find-links http://opendir-dl.com/wheels/lxml-3.6.4-cp27-cp27mu-manylinux1_x86_64.whl lxml
   - pip install .
   
 script:
