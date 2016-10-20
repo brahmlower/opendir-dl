@@ -1,5 +1,7 @@
 import os
+import md5
 import unittest
+import appdirs
 import opendir_dl
 from . import ThreadedHTTPServer
 
@@ -29,12 +31,48 @@ class TestCommandSearch(unittest.TestCase):
         opendir_dl.commands.search([], [], {"db": "test_resources/test_sqlite3.db"})
 
 class TestCommandDownload(unittest.TestCase):
+    def assert_file_exists(self, file_path):
+        self.assertTrue(os.path.exists(file_path))
+
+    def assert_files_match(self, file_path1, file_path2):
+        file_1 = open(file_path1)
+        file_2 = open(file_path2)
+        md5_1 = md5.new(file_1.read()).digest()
+        md5_2 = md5.new(file_2.read()).digest()
+        self.assertEqual(md5_1, md5_2)
+
     def test_no_args(self):
         server = ThreadedHTTPServer("localhost", 8000)
         server.start()
         try:
             opendir_dl.commands.download(["%stest_resources/test_sqlite3.db" % server.url], [], {})
+            # Make sure the file was actually downloaded
+            self.assert_file_exists("test_sqlite3.db")
+            # Make sure the two files are exactly the same
+            self.assert_files_match("test_sqlite3.db", "test_resources/test_sqlite3.db")
             os.remove("test_sqlite3.db")
+        finally:
+            server.stop()
+
+    def test_no_index(self):
+        server = ThreadedHTTPServer("localhost", 8000)
+        server.start()
+        try:
+            # Remove the existing database if it exists
+            db_path = appdirs.user_data_dir('opendir-dl') + "/default.db"
+            os.remove(db_path)
+            # Download the file
+            opendir_dl.commands.download(["%stest_resources/example_file.txt" % server.url], ['no_index'], {})
+            # Make sure the file was actually downloaded
+            self.assert_file_exists("example_file.txt")
+            # Make sure the two files are exactly the same
+            self.assert_files_match("example_file.txt", "test_resources/example_file.txt")
+            os.remove("example_file.txt")
+            # Check our database to make sure an index wasn't created
+            db_wrapper = opendir_dl.utils.DatabaseWrapper.from_default()
+            search = opendir_dl.utils.SearchEngine(db_wrapper.db_conn, ["example_file.txt"])
+            num_results = len(search.query())
+            self.assertEqual(num_results, 0)
         finally:
             server.stop()
 

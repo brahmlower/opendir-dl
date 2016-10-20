@@ -53,4 +53,5 @@ def download(input_values, input_flags, input_options): #pylint: disable=unused-
             input_values.append(i.pkid)
 
     dlman = DownloadManager(db_wrapper, input_values)
+    dlman.no_index = "no_index" in input_flags
     dlman.start()

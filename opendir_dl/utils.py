@@ -306,9 +306,10 @@ class HttpHead(object):
         return cls(url, response[0])
 
 class DownloadManager(object):
-    def __init__(self, db_wrapper, download_ids):
+    def __init__(self, db_wrapper, download_ids, no_index=False):
         self.db_wrapper = db_wrapper
         self.queue = download_ids
+        self.no_index = no_index
 
     def download_url(self, url):
         filename = url_to_filename(url)
@@ -317,8 +318,9 @@ class DownloadManager(object):
         # Save the file
         write_file(filename, response[1])
         # Create an index entry for the file
-        head = HttpHead(url, response[0])
-        save_head(self.db_wrapper.db_conn, head.as_fileindex())
+        if not self.no_index:
+            head = HttpHead(url, response[0])
+            save_head(self.db_wrapper.db_conn, head.as_fileindex())
 
     def download_id(self, pkid):
         query = self.db_wrapper.query(FileIndex).get(int(pkid))
