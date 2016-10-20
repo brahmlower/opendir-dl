@@ -118,7 +118,8 @@ class DatabaseWrapper(object):
 
     def __init__(self, source):
         if not os.path.exists(appdirs.user_data_dir('opendir-dl')):
-            os.mkdir(appdirs.user_data_dir('opendir-dl'))
+            #os.mkdir(appdirs.user_data_dir('opendir-dl'))
+            mkdir_p(appdirs.user_data_dir('opendir-dl'))
         self.db_conn = None
         self.tempfile = None
         self.source = source
@@ -408,6 +409,13 @@ def url_to_filename(url):
     if len(filename) == 0:
         filename = "index.html"
     return filename
+
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:
+        if not (exc.errno == errno.EEXIST and os.path.isdir(path)):
+            raise
 
 def write_file(filename, data):
     wfile = open(filename, 'w')
