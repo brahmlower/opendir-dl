@@ -78,7 +78,7 @@ class TestCommandDownload(unittest.TestCase):
             self.assert_files_match("example_file.txt", "test_resources/example_file.txt")
             os.remove("example_file.txt")
             # Check our database to make sure an index wasn't created
-            db_wrapper = opendir_dl.utils.DatabaseWrapper.from_default()
+            db_wrapper = opendir_dl.databasing.DatabaseWrapper.from_default()
             search = opendir_dl.utils.SearchEngine(db_wrapper.db_conn, ["example_file.txt"])
             num_results = len(search.query())
             self.assertEqual(num_results, 0)

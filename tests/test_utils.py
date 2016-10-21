@@ -156,27 +156,27 @@ class BadAnchorTest(unittest.TestCase):
 
 class DatabaseWrapper(unittest.TestCase):
     def test_provided_source(self):
-        db = opendir_dl.utils.DatabaseWrapper("sqlite3.db")
+        db = opendir_dl.databasing.DatabaseWrapper("sqlite3.db")
         self.assertEquals(db.source, "sqlite3.db")
         db.connect()
         self.assertTrue(db.is_connected())
         self.assertEquals(str(db.db_conn.bind.url), 'sqlite:///sqlite3.db')
 
     def test_memory_source(self):
-        db = opendir_dl.utils.DatabaseWrapper('')
+        db = opendir_dl.databasing.DatabaseWrapper('')
         self.assertEquals(db.source, '')
         db.connect()
         self.assertTrue(db.is_connected())
         self.assertEquals(str(db.db_conn.bind.url), 'sqlite:///')
 
     def test_query_reassignment(self):
-        db = opendir_dl.utils.DatabaseWrapper('')
+        db = opendir_dl.databasing.DatabaseWrapper('')
         db.connect()
         self.assertTrue(db.is_connected())
         self.assertEquals(db.db_conn.query, db.query)
 
     def test_from_default(self):
-        db = opendir_dl.utils.DatabaseWrapper.from_default()
+        db = opendir_dl.databasing.DatabaseWrapper.from_default()
         self.assertTrue(db.is_connected())
         db_path = appdirs.user_data_dir('opendir-dl') + "/default.db"
         self.assertEquals(str(db.db_conn.bind.url), 'sqlite:///%s' % db_path)
@@ -188,43 +188,43 @@ class DatabaseWrapper(unittest.TestCase):
         rfile = open(cur_dir + '/test_resources/test_sqlite3.db', 'rb')
         data = rfile.read()
         rfile.close()
-        db = opendir_dl.utils.DatabaseWrapper.from_data(data)
+        db = opendir_dl.databasing.DatabaseWrapper.from_data(data)
         self.assertTrue(db.is_connected())
-        self.assertEquals(db.query(opendir_dl.utils.FileIndex).count(), 14)
+        self.assertEquals(db.query(opendir_dl.models.FileIndex).count(), 14)
 
     def test_from_fs(self):
         self_path = os.path.realpath(__file__)
         cur_dir = "/".join(self_path.split("/")[:-1])
         db_path = cur_dir + '/test_resources/test_sqlite3.db'
-        db = opendir_dl.utils.DatabaseWrapper.from_fs(db_path)
+        db = opendir_dl.databasing.DatabaseWrapper.from_fs(db_path)
         self.assertTrue(db.is_connected())
-        self.assertEquals(db.query(opendir_dl.utils.FileIndex).count(), 14)
+        self.assertEquals(db.query(opendir_dl.models.FileIndex).count(), 14)
 
     def test_from_url(self):
         server = ThreadedHTTPServer("localhost", 8000)
         server.start()
         try:
             url = "%stest_resources/test_sqlite3.db" % server.url
-            db = opendir_dl.utils.DatabaseWrapper.from_url(url)
+            db = opendir_dl.databasing.DatabaseWrapper.from_url(url)
         finally:
             # We have to clean up the webserver regardless of any unexpected issues
             server.stop()
         self.assertTrue(db.is_connected())
-        self.assertEquals(db.query(opendir_dl.utils.FileIndex).count(), 14)
+        self.assertEquals(db.query(opendir_dl.models.FileIndex).count(), 14)
 
 #     def test_from_unknown(self):
 #         pass
 
 class PageCrawlerTest(unittest.TestCase):
     def test_default_triage_method(self):
-        db = opendir_dl.utils.DatabaseWrapper('')
+        db = opendir_dl.databasing.DatabaseWrapper('')
         db.connect()
         crawler = opendir_dl.utils.PageCrawler(db, ["http://localhost/"])
         self.assertFalse(crawler.quick)
         self.assertEquals(crawler.__dict__['_triage_method'], crawler.triage_standard)
 
     def test_change_triage_method(self):
-        db = opendir_dl.utils.DatabaseWrapper('')
+        db = opendir_dl.databasing.DatabaseWrapper('')
         db.connect()
         crawler = opendir_dl.utils.PageCrawler(db, ["http://localhost/"])
         crawler.quick = True
@@ -239,7 +239,7 @@ class SearchEngineTest(unittest.TestCase):
         self_path = os.path.realpath(__file__)
         cur_dir = "/".join(self_path.split("/")[:-1])
         db_path = cur_dir + '/test_resources/test_sqlite3.db'
-        db = opendir_dl.utils.DatabaseWrapper.from_fs(db_path)
+        db = opendir_dl.databasing.DatabaseWrapper.from_fs(db_path)
         search = opendir_dl.utils.SearchEngine(db, ['example'])
         self.assertTrue(len(search.filters), 1)
         results = search.query()

@@ -1,16 +1,11 @@
 import os
-import yaml
 import errno
 import urllib
-import tempfile
 import urlparse
 import datetime
 import httplib2
-import appdirs
 from bs4 import BeautifulSoup
 import sqlalchemy
-from sqlalchemy.orm import sessionmaker
-from opendir_dl.models import MODELBASE
 from opendir_dl.models import FileIndex
 
 class PageCrawler(object):
@@ -122,118 +117,6 @@ class PageCrawler(object):
         # TODO: Depending how how the database session works, threading *might*
         # cause a lot of problems here...
         self.db_conn.commit()
-
-class DatabaseWrapper(object):
-    default_db = 'default.db'
-
-    def __init__(self, source):
-        if not os.path.exists(appdirs.user_data_dir('opendir-dl')):
-            mkdir_p(appdirs.user_data_dir('opendir-dl'))
-        self.db_conn = None
-        self.tempfile = None
-        self.source = source
-
-    def query(self, *args, **kwargs):
-        # This is meant to be overwritten with a reference to
-        # self.db_conn.query that way stuff can just call wrapper.query like
-        # normal. This is overwritten with the reference to db_conn.query
-        # when the database is connected
-        pass
-
-    def is_connected(self):
-        """True/False value for if the DatabaseWrapper instance is connected
-        """
-        return self.db_conn != None
-
-    def connect(self):
-        """ Establish the database session given the set values
-        """
-        database_engine = sqlalchemy.create_engine('sqlite:///%s' % self.source)
-        MODELBASE.metadata.create_all(database_engine)
-        MODELBASE.metadata.bind = database_engine
-        database_session = sessionmaker(bind=database_engine)
-        self.db_conn = database_session()
-        setattr(self, 'query', self.db_conn.query)
-
-    @classmethod
-    def from_default(cls):
-        """Get a default instance of DatabaseWrapper
-
-        This would be used over `DatabaseWrapper()` because this returns an
-        object where self.db_conn is already an established database session
-        """
-        source = "%s/%s" % (appdirs.user_data_dir('opendir-dl'), cls.default_db)
-        dbw_inst = cls(source)
-        dbw_inst.connect()
-        return dbw_inst
-
-    @classmethod
-    def from_fs(cls, path):
-        """ Gets a database session from a cache of a remote database
-
-        This method will need additional sanitation on the `path` value.
-        relative and absolute paths *should* work, but anything referecing `~`
-        will need to be expanded first.
-        """
-        dbw_inst = cls(path)
-        dbw_inst.connect()
-        return dbw_inst
-
-    @classmethod
-    def from_data(cls, data):
-        """Get an instance of DatabaseWrapper from the give raw data
-        """
-        temp_file = tempfile.NamedTemporaryFile()
-        dbw_inst = cls(temp_file.name)
-        dbw_inst.tempfile = temp_file
-        dbw_inst.tempfile.write(data)
-        dbw_inst.tempfile.flush()
-        dbw_inst.connect()
-        return dbw_inst
-
-    @classmethod
-    def from_url(cls, url):
-        """ Gets a database session from a URL
-        """
-        response = http_get(url)
-        if response[0]['status'] == '200':
-            return cls.from_data(response[1])
-        else:
-            message = "HTTP GET request failed with error '%s'. Expected '200'." \
-                    % response[0]['status']
-            raise ValueError(message)
-
-    @classmethod
-    def from_name(cls, name):
-        config_path = appdirs.user_data_dir('opendir-dl') + "/config.yml"
-        config = yaml.load(open(config_path))
-        if config['databases'].get(name, None):
-            return cls.from_fs(appdirs.user_data_dir('opendir-dl') + "/" + config['databases'].get(name))
-        elif config['alias'].get(name, None):
-            pass
-        return None
-
-    @classmethod
-    def from_unknown(cls, source_string=None):
-        """Creates an instance of DatabaseWrapper given an unknown string
-        """
-        cache_list = [] # TODO: This is a placeholder until cached databases are implemented
-        if not source_string:
-            # This gets us the default configuration
-            return cls.from_default()
-        if source_string.startswith("http://"):
-            # We were given a URL
-            return cls.from_url(source_string)
-        config = yaml.load(open(appdirs.user_data_dir('opendir-dl') + "/config.yml"))
-        cache_list = config['databases'].keys()
-        cache_list += config['alias'].keys()
-        if source_string in cache_list:
-            # Load from a cache of remote db
-            #return cls.from_cache(source_string)
-            return cls.from_name(source_string)
-        else:
-            # We have a fs path
-            return cls.from_fs(source_string)
 
 class SearchEngine(object):
     def __init__(self, db_conn=None, search_terms=None):
@@ -413,6 +296,8 @@ def http_get(url, http_session=httplib2.Http()):
 def bad_anchor(anchor):
     """Determines if the provided anchor is one we want to follow
 
+    TODO: Add configurables here, so people can add their own expressions
+    to filter out.
     I know all the logic here can be compressed into a smaller expression,
     but it's saying expanded just to be more readable. This function will be
     improved eventually anyway.
@@ -446,9 +331,9 @@ def mkdir_p(path):
             raise
 
 def write_file(filename, data):
-    wfile = open(filename, 'w')
-    wfile.write(data)
-    wfile.close()
+    with open(filename, 'w') as wfile:
+        wfile.write(data)
+        wfile.close()
 
 def is_url(candidate):
     try:
