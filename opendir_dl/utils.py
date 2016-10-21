@@ -321,15 +321,17 @@ class DownloadManager(object):
         self.no_index = no_index
 
     def download_url(self, url):
-        # TODO: *BUG* This will make a new file even if the query status is not 200
         filename = url_to_filename(url)
         # Download the file
         response = http_get(url)
+        head = HttpHead(url, response[0])
+        if head.status != 200:
+            print "Failed to download file (HTTP Status %d): %s" % (head.status, url)
+            return
         # Save the file
         write_file(filename, response[1])
         # Create an index entry for the file
         if not self.no_index:
-            head = HttpHead(url, response[0])
             save_head(self.db_wrapper.db_conn, head.as_fileindex())
 
     def download_id(self, pkid):

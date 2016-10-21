@@ -85,6 +85,17 @@ class TestCommandDownload(unittest.TestCase):
         finally:
             server.stop()
 
+    def test_bad_status(self):
+        server = ThreadedHTTPServer("localhost", 8000)
+        server.start()
+        try:
+            # This references path test_resources/test_404_head.txt which does not exist (causing status 404)
+            opendir_dl.commands.download([13], [], {"db": "%stest_resources/test_sqlite3.db" % server.url})
+            # Make sure the file was not created
+            self.assertFalse(os.path.exists("test_404_head.txt"))
+        finally:
+            server.stop()
+
     def test_search(self):
         server = ThreadedHTTPServer("localhost", 8000)
         server.start()
