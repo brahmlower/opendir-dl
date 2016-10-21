@@ -5,16 +5,13 @@
 This is an indexer and downloader for open directories.
 
 ## Installation
-Clone the repo, cd into the directory and then do a local pip install
+While the project is in development, the best way to install the project is using the vcs support in pip:
 ```
-user@debian:~$ git clone https://github.com/bplower/opendir-dl.git
-user@debian:~$ cd opendir-dl
-user@debian:~/opendir-dl$ sudo pip install .
+user@debian:~$ pip install -e git+https://github.com/bplower/opendir-dl#egg=opendir-dl
 ```
 
-The executable itself isn't installed by pip, so you will need to copy it to a location in your path.
+This will make the 'opendir-dl' script available:
 ```
-user@debian:~/opendir-dl$ cp opendir-dl /usr/local/bin/.
 user@debian:~/opendir-dl$ which opendir-dl
 /usr/local/bin/opendir-dl
 ```
@@ -46,11 +43,23 @@ This can be used to recheck existing entries. Will execute a HEAD request on eac
 opendir-dl index --reindex all
 ```
 
-**Reindex specific domain** (planned)
+**Reindex an existing entry** (planned)
 
-The reindex process can be narrowed down to all entries related to a domain
+If you want to reindex a specific item, you can reference the index ID. Here we're going to get the ID for the file "example_file.txt", and then update our index of it.
 ```
-opendir-dl index --reindex domain.com
+opendir-dl search example_file.txt
++----+------------------+-------------------------------------------------------+----------------------------+
+| ID | Name             | URL                                                   | Last Indexed               |
++----+------------------+-------------------------------------------------------+----------------------------+
+| 15 | example_file.txt | http://localhost:8000/test_resources/example_file.txt | 2016-10-16 21:23:35.409316 |
++----+------------------+-------------------------------------------------------+----------------------------+
+opendir-dl index 15
+opendir-dl search example_file.txt
++----+------------------+-------------------------------------------------------+----------------------------+
+| ID | Name             | URL                                                   | Last Indexed               |
++----+------------------+-------------------------------------------------------+----------------------------+
+| 15 | example_file.txt | http://localhost:8000/test_resources/example_file.txt | 2016-10-20 16:14:52.431861 |
++----+------------------+-------------------------------------------------------+----------------------------+
 ```
 
 **Reindex specific url prefix** (planned)

@@ -26,6 +26,15 @@ class TestCommandIndex(unittest.TestCase):
         finally:
             server.stop()
 
+    def test_index_404status(self):
+        server = ThreadedHTTPServer("localhost", 8000)
+        server.start()
+        try:
+            url = "%s/test_resources/missing_file.txt" % server.url
+            opendir_dl.commands.index([url], [], {})
+        finally:
+            server.stop()
+
 class TestCommandSearch(unittest.TestCase):
     def test_no_args(self):
         opendir_dl.commands.search([], [], {"db": "test_resources/test_sqlite3.db"})
@@ -62,7 +71,7 @@ class TestCommandDownload(unittest.TestCase):
             db_path = appdirs.user_data_dir('opendir-dl') + "/default.db"
             os.remove(db_path)
             # Download the file
-            opendir_dl.commands.download(["%stest_resources/example_file.txt" % server.url], ['no_index'], {})
+            opendir_dl.commands.download(["%stest_resources/example_file.txt" % server.url], ['no-index'], {})
             # Make sure the file was actually downloaded
             self.assert_file_exists("example_file.txt")
             # Make sure the two files are exactly the same

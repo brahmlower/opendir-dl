@@ -17,7 +17,7 @@ def help(*args):#input_values, input_flags, input_options): #pylint: disable=unu
 def index(input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl index` is called
     """
-    db_wrapper = DatabaseWrapper.from_default()
+    db_wrapper = DatabaseWrapper.from_unknown(input_options.get('db', None))
     crawler = PageCrawler(db_wrapper.db_conn, input_values)
     crawler.quick = "quick" in input_flags
     crawler.reindex = input_options.get("reindex", None)
@@ -32,11 +32,11 @@ def search(input_values, input_flags, input_options): #pylint: disable=unused-ar
     search = SearchEngine(db_wrapper.db_conn, input_values)
     search.exclusive = "inclusive" not in input_flags
     # This is all output related stuff
-    output_table = PrettyTable(['ID', 'Name', 'URL'])
+    output_table = PrettyTable(['ID', 'Name', 'URL', 'Last Indexed'])
     output_table.padding_width = 1
     output_table.align = 'l'
     for i in search.query():
-        output_table.add_row([i.pkid, i.name, i.url])
+        output_table.add_row([i.pkid, i.name, i.url, i.last_indexed])
     print output_table
 
 def download(input_values, input_flags, input_options): #pylint: disable=unused-argument
@@ -53,5 +53,5 @@ def download(input_values, input_flags, input_options): #pylint: disable=unused-
             input_values.append(i.pkid)
 
     dlman = DownloadManager(db_wrapper, input_values)
-    dlman.no_index = "no_index" in input_flags
+    dlman.no_index = "no-index" in input_flags
     dlman.start()

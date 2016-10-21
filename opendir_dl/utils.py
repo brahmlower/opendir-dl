@@ -1,4 +1,5 @@
 import os
+import errno
 import urllib
 import tempfile
 import urlparse
@@ -22,13 +23,19 @@ class PageCrawler(object):
         self.db_conn = db_conn
         self._quick = False
         self._triage_method = self.triage_standard
-        self.reindex = None
-        if not isinstance(input_urls, list):
-            raise ValueError
-
-        self.url_triage_bucket = input_urls
+        self.url_triage_bucket = []
         self.index_urls = []
         self.file_heads = []
+
+        self.clean_index_items(input_urls)
+
+    def clean_index_items(self, url_ids):
+        for item in url_ids:
+            if is_url(item):
+                self.url_triage_bucket.append(item)
+            elif isinstance(item, int) or item.isdigit():
+                index_entry = self.db_conn.query(FileIndex).get(int(item))
+                self.url_triage_bucket.append(index_entry.url)
 
     @property
     def quick(self):
@@ -71,6 +78,8 @@ class PageCrawler(object):
             # for deciding what to do with the resource (crawl it/database it)
             head = HttpHead.from_url(url)
             if head.status != 200:
+                # TODO: Write a test that triggers this
+                print "Index failed (HTTP Error %d) URL: %s" % (head.status, url)
                 continue
             if head.is_html() and not head.last_modified:
                 # If the content type is "text/html", and does not have a
@@ -312,6 +321,7 @@ class DownloadManager(object):
         self.no_index = no_index
 
     def download_url(self, url):
+        # TODO: *BUG* This will make a new file even if the query status is not 200
         filename = url_to_filename(url)
         # Download the file
         response = http_get(url)
@@ -355,7 +365,8 @@ def save_head(db_conn, head, commit=True):
         old_head.content_length = head.content_length
         old_head.last_modified = head.last_modified
         old_head.last_indexed = head.last_indexed
-        print 'Updating pre-existing index'
+        # TODO: The following line should only print when verbose = True
+        # print 'Updating pre-existing index'
     else:
         # There are multiple entries
         print "There were multiple entires (this is bad). URL index not saved."

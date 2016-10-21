@@ -182,6 +182,7 @@ class DatabaseWrapper(unittest.TestCase):
         self.assertEquals(str(db.db_conn.bind.url), 'sqlite:///%s' % db_path)
 
     def test_from_data(self):
+        # TODO: Automatically count the entries in the database, that way I don't have to update these tests EVERY TIME I UPDATE THE DATABASE
         self_path = os.path.realpath(__file__)
         cur_dir = "/".join(self_path.split("/")[:-1])
         rfile = open(cur_dir + '/test_resources/test_sqlite3.db', 'rb')
@@ -189,7 +190,7 @@ class DatabaseWrapper(unittest.TestCase):
         rfile.close()
         db = opendir_dl.utils.DatabaseWrapper.from_data(data)
         self.assertTrue(db.is_connected())
-        self.assertEquals(db.query(opendir_dl.utils.FileIndex).count(), 12)
+        self.assertEquals(db.query(opendir_dl.utils.FileIndex).count(), 14)
 
     def test_from_fs(self):
         self_path = os.path.realpath(__file__)
@@ -197,7 +198,7 @@ class DatabaseWrapper(unittest.TestCase):
         db_path = cur_dir + '/test_resources/test_sqlite3.db'
         db = opendir_dl.utils.DatabaseWrapper.from_fs(db_path)
         self.assertTrue(db.is_connected())
-        self.assertEquals(db.query(opendir_dl.utils.FileIndex).count(), 12)
+        self.assertEquals(db.query(opendir_dl.utils.FileIndex).count(), 14)
 
     def test_from_url(self):
         server = ThreadedHTTPServer("localhost", 8000)
@@ -209,7 +210,7 @@ class DatabaseWrapper(unittest.TestCase):
             # We have to clean up the webserver regardless of any unexpected issues
             server.stop()
         self.assertTrue(db.is_connected())
-        self.assertEquals(db.query(opendir_dl.utils.FileIndex).count(), 12)
+        self.assertEquals(db.query(opendir_dl.utils.FileIndex).count(), 14)
 
 #     def test_from_unknown(self):
 #         pass
