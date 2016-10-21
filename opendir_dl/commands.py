@@ -1,4 +1,6 @@
 import os
+import yaml
+import appdirs
 from prettytable import PrettyTable
 from opendir_dl.utils import DatabaseWrapper
 from opendir_dl.utils import SearchEngine
@@ -13,6 +15,65 @@ def help(*args):#input_values, input_flags, input_options): #pylint: disable=unu
     rfile = open(cur_dir + "/help.txt", 'r')
     print rfile.read()
     rfile.close()
+
+def database(input_values, input_flags, input_options): #pylint: disable=unused-argument
+    """Function run when `opendir-dl db` is called
+    """
+    config_path = appdirs.user_data_dir('opendir-dl') + "/config.yml"
+    config_stream = open(config_path, 'r')
+    config = yaml.load(config_stream)
+    config_stream.close()
+
+    if "delete" in input_options.keys():
+        target = input_options['delete']
+        if target == "default":
+            raise ValueError("Invalid database name- cannot delete default database.")
+        if target not in config['databases'].keys():
+            raise ValueError("Invalid database name- no database exists with that name.")
+        config['databases'].pop(target, None)
+        wfile = open(config_path, 'w')
+        yaml.dump(config, wfile, default_flow_style=False)
+        wfile.close()
+        return
+
+    if len(input_values) > 0:
+        # We're creating a new database
+        config_stream = open(config_path, 'r+')
+        config = yaml.load(config_stream)
+        disallowed_db_names = ['default']
+        db_name = input_values[0]
+        # Validate the name for the new database
+        if db_name in disallowed_db_names:
+            raise ValueError("Invalid database name- cannot be in disallowed database name list.")
+        if len(db_name.split()) > 1:
+            raise ValueError("Invalid database name- cannot contain whitespace.")
+        if db_name in config['databases'].keys():
+            raise ValueError("Invalid database name- database with that name already exists.")
+        # Set the database type and resource
+        if 'type' in input_options.keys() and 'resource' not in input_options.keys():
+            # If we're specifying the type, we *must* specify the resource
+            raise ValueError("Must provide resource when specifying a database type")
+        db_type = input_options.get('type', 'filesystem')
+        if db_type not in ['filesystem', 'url', 'alias']:
+            raise ValueError("Database type must be one of: url, filesystem, alias")
+        db_resource = input_options.get('resource', db_name + ".db")
+        if db_type == "alias" and db_resource not in config['databases'].keys():
+            raise ValueError("Cannot create alias to database- no database named '%s'." % db_resource)
+        # Save the new configuration
+        config['databases'][db_name] = {'type': db_type, 'resource': db_resource}
+        wfile = open(config_path, 'w')
+        yaml.dump(config, wfile, default_flow_style=False)
+        wfile.close()
+        return
+
+    config_stream = open(config_path)
+    config = yaml.load(config_stream)
+    output_table = PrettyTable(['Name', 'Type', 'Resource'])
+    output_table.padding_width = 1
+    output_table.align = 'l'
+    for i in config['databases']:
+        output_table.add_row([i, config['databases'][i]['type'], config['databases'][i]['resource']])
+    print output_table
 
 def index(input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl index` is called

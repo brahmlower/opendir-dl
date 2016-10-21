@@ -1,4 +1,5 @@
 import os
+import yaml
 import errno
 import urllib
 import tempfile
@@ -127,7 +128,6 @@ class DatabaseWrapper(object):
 
     def __init__(self, source):
         if not os.path.exists(appdirs.user_data_dir('opendir-dl')):
-            #os.mkdir(appdirs.user_data_dir('opendir-dl'))
             mkdir_p(appdirs.user_data_dir('opendir-dl'))
         self.db_conn = None
         self.tempfile = None
@@ -204,6 +204,16 @@ class DatabaseWrapper(object):
             raise ValueError(message)
 
     @classmethod
+    def from_name(cls, name):
+        config_path = appdirs.user_data_dir('opendir-dl') + "/config.yml"
+        config = yaml.load(open(config_path))
+        if config['databases'].get(name, None):
+            return cls.from_fs(appdirs.user_data_dir('opendir-dl') + "/" + config['databases'].get(name))
+        elif config['alias'].get(name, None):
+            pass
+        return None
+
+    @classmethod
     def from_unknown(cls, source_string=None):
         """Creates an instance of DatabaseWrapper given an unknown string
         """
@@ -214,10 +224,13 @@ class DatabaseWrapper(object):
         if source_string.startswith("http://"):
             # We were given a URL
             return cls.from_url(source_string)
-        elif source_string in cache_list:
+        config = yaml.load(open(appdirs.user_data_dir('opendir-dl') + "/config.yml"))
+        cache_list = config['databases'].keys()
+        cache_list += config['alias'].keys()
+        if source_string in cache_list:
             # Load from a cache of remote db
             #return cls.from_cache(source_string)
-            pass
+            return cls.from_name(source_string)
         else:
             # We have a fs path
             return cls.from_fs(source_string)
