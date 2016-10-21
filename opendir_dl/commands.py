@@ -78,7 +78,6 @@ def database(input_values, input_flags, input_options): #pylint: disable=unused-
 def index(input_values, input_flags, input_options): #pylint: disable=unused-argument
     """Function run when `opendir-dl index` is called
     """
-    #db_wrapper = DatabaseWrapper.from_unknown(input_options.get('db', None))
     db_wrapper = database_opener(input_options.get('db', None))
 
     crawler = PageCrawler(db_wrapper.db_conn, input_values)

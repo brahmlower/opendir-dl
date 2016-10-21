@@ -2,7 +2,7 @@ from opendir_dl import commands
 
 class ParseInput(object):
     available_flags = ["inclusive", "quick", "quiet", "search", "no-index"]
-    available_options = ["depth", "database", "delete", "type", "resource"]
+    available_options = ["depth", "db", "delete", "type", "resource"]
     available_commands = {"help": commands.help, "index": commands.index,
                           "search": commands.search, "download": commands.download,
                           "database": commands.database}
