@@ -1,7 +1,10 @@
+import os
+import sys
 import unittest
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'opendir_dl'))
 import opendir_dl
 
-class TestParseInput(unittest.TestCase):
+class ParseInputTest(unittest.TestCase):
     """Tests opendir_dl.utils.is_url
     """
     def test_no_values(self):
@@ -49,7 +52,7 @@ class TestParseInput(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             parsed_input.add_option("unittest", False)
 
-class TestMain(unittest.TestCase):
+class MainTest(unittest.TestCase):
     def test_no_args(self):
         opendir_dl.main([])
 

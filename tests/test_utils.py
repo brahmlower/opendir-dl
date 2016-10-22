@@ -1,10 +1,12 @@
 import os
+import sys
 import appdirs
 import tempfile
 import unittest
 from urlparse import urlparse
 from datetime import datetime
 import sqlalchemy
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'opendir_dl'))
 import opendir_dl
 from . import ThreadedHTTPServer
 
@@ -50,7 +52,7 @@ class UrlToFilenameTest(unittest.TestCase):
         parsed_filename = opendir_dl.utils.url_to_filename(url)
         self.assertEquals("file name.txt", parsed_filename)
 
-    def test_implicite_filename(self):
+    def test_implicit_filename(self):
         url = "http://localhost/"
         parsed_filename = opendir_dl.utils.url_to_filename(url)
         self.assertEquals("index.html", parsed_filename)
@@ -154,67 +156,6 @@ class BadAnchorTest(unittest.TestCase):
         is_bad = opendir_dl.utils.bad_anchor(href)
         self.assertTrue(is_bad)
 
-class DatabaseWrapper(unittest.TestCase):
-    def test_provided_source(self):
-        db = opendir_dl.databasing.DatabaseWrapper("sqlite3.db")
-        self.assertEquals(db.source, "sqlite3.db")
-        db.connect()
-        self.assertTrue(db.is_connected())
-        self.assertEquals(str(db.db_conn.bind.url), 'sqlite:///sqlite3.db')
-
-    def test_memory_source(self):
-        db = opendir_dl.databasing.DatabaseWrapper('')
-        self.assertEquals(db.source, '')
-        db.connect()
-        self.assertTrue(db.is_connected())
-        self.assertEquals(str(db.db_conn.bind.url), 'sqlite:///')
-
-    def test_query_reassignment(self):
-        db = opendir_dl.databasing.DatabaseWrapper('')
-        db.connect()
-        self.assertTrue(db.is_connected())
-        self.assertEquals(db.db_conn.query, db.query)
-
-    def test_from_default(self):
-        db = opendir_dl.databasing.DatabaseWrapper.from_default()
-        self.assertTrue(db.is_connected())
-        db_path = appdirs.user_data_dir('opendir-dl') + "/default.db"
-        self.assertEquals(str(db.db_conn.bind.url), 'sqlite:///%s' % db_path)
-
-    def test_from_data(self):
-        # TODO: Automatically count the entries in the database, that way I don't have to update these tests EVERY TIME I UPDATE THE DATABASE
-        self_path = os.path.realpath(__file__)
-        cur_dir = "/".join(self_path.split("/")[:-1])
-        rfile = open(cur_dir + '/test_resources/test_sqlite3.db', 'rb')
-        data = rfile.read()
-        rfile.close()
-        db = opendir_dl.databasing.DatabaseWrapper.from_data(data)
-        self.assertTrue(db.is_connected())
-        self.assertEquals(db.query(opendir_dl.models.FileIndex).count(), 14)
-
-    def test_from_fs(self):
-        self_path = os.path.realpath(__file__)
-        cur_dir = "/".join(self_path.split("/")[:-1])
-        db_path = cur_dir + '/test_resources/test_sqlite3.db'
-        db = opendir_dl.databasing.DatabaseWrapper.from_fs(db_path)
-        self.assertTrue(db.is_connected())
-        self.assertEquals(db.query(opendir_dl.models.FileIndex).count(), 14)
-
-    def test_from_url(self):
-        server = ThreadedHTTPServer("localhost", 8000)
-        server.start()
-        try:
-            url = "%stest_resources/test_sqlite3.db" % server.url
-            db = opendir_dl.databasing.DatabaseWrapper.from_url(url)
-        finally:
-            # We have to clean up the webserver regardless of any unexpected issues
-            server.stop()
-        self.assertTrue(db.is_connected())
-        self.assertEquals(db.query(opendir_dl.models.FileIndex).count(), 14)
-
-#     def test_from_unknown(self):
-#         pass
-
 class PageCrawlerTest(unittest.TestCase):
     def test_default_triage_method(self):
         db = opendir_dl.databasing.DatabaseWrapper('')
@@ -259,12 +200,8 @@ class SearchEngineTest(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             search.query()
 
-class TestHttpGet(unittest.TestCase):
+class HttpGetTest(unittest.TestCase):
     def test_localhost(self):
-        server = ThreadedHTTPServer("localhost", 8000)
-        server.start()
-        try:
+        with ThreadedHTTPServer("localhost", 8000) as server:
             response = opendir_dl.utils.http_get(server.url)
-        finally:
-            server.stop()
         self.assertEquals(response[0]["status"], '200')

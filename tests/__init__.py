@@ -26,3 +26,10 @@ class ThreadedHTTPServer(object):
     def stop(self):
         self.server.shutdown()
         self.server.server_close()
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.stop()

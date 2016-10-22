@@ -25,6 +25,7 @@ def database(input_values, input_flags, input_options): #pylint: disable=unused-
     config_stream.close()
 
     if "delete" in input_options.keys():
+        # TODO: This won't delete the actual database file
         target = input_options['delete']
         if target == "default":
             raise ValueError("Invalid database name- cannot delete default database.")
