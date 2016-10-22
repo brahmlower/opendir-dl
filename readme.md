@@ -36,14 +36,7 @@ The quick index will do everything the same as the Basic index except for data c
 opendir-dl index --quick http://domain.com/some/path
 ```
 
-**Reindex everything** (planned)
-
-This can be used to recheck existing entries. Will execute a HEAD request on each file that is indexed, updating any changed information. This will take an extremely long time
-```
-opendir-dl index --reindex all
-```
-
-**Reindex an existing entry** (planned)
+**Reindex Existing Entries**
 
 If you want to reindex a specific item, you can reference the index ID. Here we're going to get the ID for the file "example_file.txt", and then update our index of it.
 ```
@@ -60,13 +53,6 @@ opendir-dl search example_file.txt
 +----+------------------+-------------------------------------------------------+----------------------------+
 | 15 | example_file.txt | http://localhost:8000/test_resources/example_file.txt | 2016-10-20 16:14:52.431861 |
 +----+------------------+-------------------------------------------------------+----------------------------+
-```
-
-**Reindex specific url prefix** (planned)
-
-The reindex process can be narrowed down to all entries starting with a specific URL
-```
-opendir-dl index --reindex http://domain.com/some/
 ```
 
 ### Search
