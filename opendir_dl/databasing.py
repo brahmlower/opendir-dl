@@ -1,6 +1,5 @@
 import os
 import tempfile
-import yaml
 import appdirs
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
@@ -13,8 +12,6 @@ class DatabaseWrapper(object):
     default_db = 'default.db'
 
     def __init__(self, source):
-        if not os.path.exists(appdirs.user_data_dir('opendir-dl')):
-            mkdir_p(appdirs.user_data_dir('opendir-dl'))
         self.db_conn = None
         self.tempfile = None
         self.source = source
@@ -93,16 +90,14 @@ class DatabaseWrapper(object):
             raise ValueError(message)
 
     @classmethod
-    def from_name(cls, name):
-        config_path = appdirs.user_data_dir('opendir-dl') + "/config.yml"
-        config = yaml.load(open(config_path))
-        if not config['databases'].get(name, None):
-            raise ValueError
-        database_path = appdirs.user_data_dir('opendir-dl') + "/" + \
-            config['databases'][name]['resource']
+    def from_name(cls, name, config):
+        if not config.databases.get(name, None):
+            message = "Cound not find database with the name '%s'." % name
+            raise ValueError(message)
+        database_path = os.path.join(config.parent_dir, config.databases[name]['resource'])
         return cls.from_fs(database_path)
 
-def database_opener(database_string=None):
+def database_opener(database_string=None, config=None):
     """Creates an instance of DatabaseWrapper
 
     We don't know what resource type the database_string is referencing. It can
@@ -119,9 +114,8 @@ def database_opener(database_string=None):
     if is_url(database_string):
         return DatabaseWrapper.from_url(database_string)
     # Load from a named database
-    config = yaml.load(open(appdirs.user_data_dir('opendir-dl') + "/config.yml"))
-    if database_string in config['databases'].keys():
-        return DatabaseWrapper.from_name(database_string)
+    if config != None and database_string in config.databases.keys():
+        return DatabaseWrapper.from_name(database_string, config)
     # It might be a filesystem path
     fs_path = os.path.expandvars(database_string)
     fs_path = os.path.expanduser(fs_path)

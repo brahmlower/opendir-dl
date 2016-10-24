@@ -10,6 +10,7 @@ from opendir_dl.utils import create_table
 
 class BaseCommand(object):
     def __init__(self):
+        self.config = None
         self.options = {}
         self.flags = []
         self.values = []
@@ -93,17 +94,7 @@ class DatabaseCommand(BaseCommand):
     valid_options = {}
     valid_flags = []
 
-    def __init__(self):
-        super(DatabaseCommand, self).__init__()
-        # Configuration prep
-        self.config_path = appdirs.user_data_dir('opendir-dl') + "/config.yml"
-        with open(self.config_path, 'r') as rfile:
-            self.config = yaml.load(rfile)
-
     def create_database(self):
-        # We're creating a new database
-        config_stream = open(self.config_path, 'r+')
-        config = yaml.load(config_stream)
         disallowed_db_names = ['default']
         db_name = self.values[0]
         # Validate the name for the new database
@@ -113,7 +104,7 @@ class DatabaseCommand(BaseCommand):
         if len(db_name.split()) > 1:
             message = "Invalid database name- cannot contain whitespace."
             raise ValueError(message)
-        if db_name in config['databases'].keys():
+        if db_name in self.config.databases.keys():
             message = "Invalid database name- database with that name already exists."
             raise ValueError(message)
         # Set the database type and resource
@@ -126,13 +117,12 @@ class DatabaseCommand(BaseCommand):
             message = "Database type must be one of: url, filesystem, alias."
             raise ValueError(message)
         db_resource = self.options.get('resource', db_name + ".db")
-        if db_type == "alias" and db_resource not in config['databases'].keys():
+        if db_type == "alias" and db_resource not in self.config.databases.keys():
             message = "Cannot create alias to database- no database named '%s'." % db_resource
             raise ValueError(message)
         # Save the new configuration
-        config['databases'][db_name] = {'type': db_type, 'resource': db_resource}
-        with open(self.config_path, 'w') as wfile:
-            yaml.dump(config, wfile, default_flow_style=False)
+        self.config.databases[db_name] = {'type': db_type, 'resource': db_resource}
+        self.config.save()
 
     def delete_database(self):
         # TODO: This won't delete the actual database file
@@ -140,19 +130,18 @@ class DatabaseCommand(BaseCommand):
         if target == "default":
             message = "Invalid database name- cannot delete default database."
             raise ValueError(message)
-        if target not in self.config['databases'].keys():
+        if target not in self.config.databases.keys():
             message = "Invalid database name- no database exists with that name."
             raise ValueError(message)
-        self.config['databases'].pop(target, None)
-        with open(self.config_path, 'w') as wfile:
-            yaml.dump(self.config, wfile, default_flow_style=False)
+        self.config.databases.pop(target, None)
+        self.config.save()
 
     def list_databases(self):
         output_table = PrettyTable(['Name', 'Type', 'Resource'])
         output_table.padding_width = 1
         output_table.align = 'l'
-        for i in self.config['databases']:
-            row = [i, self.config['databases'][i]['type'], self.config['databases'][i]['resource']]
+        for i in self.config.databases:
+            row = [i, self.config.databases[i]['type'], self.config.databases[i]['resource']]
             output_table.add_row(row)
         print output_table
 
@@ -162,3 +151,4 @@ class DatabaseCommand(BaseCommand):
         if self.options.get("delete", False):
             return self.delete_database()
         self.list_databases()
+

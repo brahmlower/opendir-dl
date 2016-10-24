@@ -4,6 +4,7 @@ import urllib
 import urlparse
 import datetime
 import httplib2
+import appdirs
 import sqlalchemy
 from bs4 import BeautifulSoup
 from prettytable import PrettyTable
@@ -350,3 +351,7 @@ def create_table(data, columns):
     for i in data:
         output_table.add_row([i.pkid, i.name, i.url, i.last_indexed])
     return output_table.get_string()
+
+def get_config_path(file_name, project_name="opendir-dl"):
+   return os.path.join(appdirs.user_data_dir(project_name), file_name)
+

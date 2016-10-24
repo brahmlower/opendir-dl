@@ -1,4 +1,10 @@
+import os
+import os.path
+import yaml
+import appdirs
 from opendir_dl import commands
+from opendir_dl.utils import get_config_path
+from opendir_dl.utils import mkdir_p
 
 class ParseInput(object):
     available_flags = ["inclusive", "quick", "quiet", "search", "no-index"]
@@ -22,8 +28,9 @@ class ParseInput(object):
         self.options = {}
         self.command_values = []
 
-    def instantiate_command(self):
+    def instantiate_command(self, config = None):
         instance = self.command()
+        instance.config = config
         instance.flags = self.flags
         instance.options = self.options
         instance.values = self.command_values
@@ -98,7 +105,37 @@ class ParseInput(object):
         # Return the new parsed input object
         return clean_input
 
-def main(raw_user_in):
+class Configuration(object):
+    def __init__(self, config_path = None):
+        self.config_path = config_path
+        self.parent_dir = os.path.abspath(os.path.join(self.config_path, os.pardir))
+        self.databases = {}
+        if self.config_path:
+            self.open()
+
+    def create(self):
+        if not os.path.exists(self.parent_dir):
+            mkdir_p(self.parent_dir)
+        if not os.path.exists(self.config_path):
+            self.save()
+
+    def open(self):
+        try:
+            with open(self.config_path, 'r') as rfile:
+                config = yaml.load(rfile)
+            self.databases = config['databases']
+        except IOError:
+            self.create()
+
+    def save(self):
+        config_dict = {"databases": self.databases}
+        with open(self.config_path, 'w') as wfile:
+            yaml.dump(config_dict, wfile, default_flow_style=False)
+
+#def get_config_path(file_name, project_name="opendir-dl"):
+#   return os.path.join(appdirs.user_data_dir(project_name), file_name)
+
+def main(raw_input_list):
     """The main function for handling any provided input
 
     Consider the following two examples
@@ -111,6 +148,7 @@ def main(raw_user_in):
     The the first example is run from the commandline, where the second example
     is run from a python shell. the result of these two examples is the same.
     """
-    user_in = ParseInput.from_list(raw_user_in)
-    command_instance = user_in.instantiate_command()
+    config = Configuration(config_path = get_config_path("config.yml"))
+    user_in = ParseInput.from_list(raw_input_list)
+    command_instance = user_in.instantiate_command(config = config)
     command_instance.run()

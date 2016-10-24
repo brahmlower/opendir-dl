@@ -5,6 +5,7 @@ import appdirs
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'opendir_dl'))
 import opendir_dl
 from . import ThreadedHTTPServer
+from . import TestWithConfig
 
 class DatabaseWrapperTest(unittest.TestCase):
     def test_provided_source(self):
@@ -66,7 +67,7 @@ class DatabaseWrapperTest(unittest.TestCase):
                 db = opendir_dl.databasing.DatabaseWrapper.from_url(url)
         self.assertEqual(str(context.exception), expected_error)
 
-class DatabaseOpenerTest(unittest.TestCase):
+class DatabaseOpenerTest(TestWithConfig):
     def test_provided_none(self):
         db_wrapper = opendir_dl.databasing.database_opener()
         self.assertTrue(db_wrapper.is_connected())
@@ -83,13 +84,13 @@ class DatabaseOpenerTest(unittest.TestCase):
         self.assertTrue(db_wrapper.is_connected())
 
     def test_provided_named_db(self):
-        db_name = "secondary"
+        db_name = "named_database_test"
         instance = opendir_dl.commands.DatabaseCommand()
+        instance.config = self.config
         instance.values = [db_name]
         instance.run()
-        db_wrapper = opendir_dl.databasing.database_opener(db_name)
+        db_wrapper = opendir_dl.databasing.database_opener(db_name, self.config)
         self.assertTrue(db_wrapper.is_connected())
-        #opendir_dl.commands.DatabaseCommand([db_name], [], {"delete": db_name})
 
     def tests_not_matching(self):
         provided_string = "abc_doesnt-match a database"

@@ -6,6 +6,7 @@ import appdirs
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'opendir_dl'))
 import opendir_dl
 from . import ThreadedHTTPServer
+from . import TestWithConfig
 
 """
 Just makes sure the code doesn't throw exceptions. Code cleanup required before
@@ -53,29 +54,34 @@ class CommandIndexTest(unittest.TestCase):
             instance.values = [url]
             instance.run()
 
-class CommandDatabaseTest(unittest.TestCase):
+class CommandDatabaseTest(TestWithConfig):
     def test_list(self):
         instance = opendir_dl.commands.DatabaseCommand()
+        instance.config = self.config
         instance.run()
 
     def test_create_and_delete_database(self):
         # Create a database to be deleted
         instance1 = opendir_dl.commands.DatabaseCommand()
+        instance1.config = self.config
         instance1.values = ["test1"]
         instance1.run()
         # Delete the database we just made
         instance2 = opendir_dl.commands.DatabaseCommand()
+        instance2.config = self.config
         instance2.options["delete"] = "test1"
         instance2.run()
 
     def test_attempt_delete_default(self):
         instance = opendir_dl.commands.DatabaseCommand()
+        instance.config = self.config
         instance.options["delete"] = "default"
         with self.assertRaises(ValueError) as context:
             instance.run()
 
     def test_attempt_bad_type(self):
         instance = opendir_dl.commands.DatabaseCommand()
+        instance.config = self.config
         instance.options["type"] = "notavalidtype"
         instance.options["resource"] = "default"
         instance.values = ["test2"]
@@ -88,6 +94,7 @@ class CommandDatabaseTest(unittest.TestCase):
         resource = "nonreal_database"
         expected_error = "Cannot create alias to database- no database named '%s'." % resource
         instance = opendir_dl.commands.DatabaseCommand()
+        instance.config = self.config
         instance.options["type"] = "alias"
         instance.options["resource"] = resource
         instance.values = ["alias_name"]
