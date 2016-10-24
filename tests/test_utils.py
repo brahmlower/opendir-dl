@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import appdirs
 import tempfile
 import unittest
@@ -157,6 +158,17 @@ class BadAnchorTest(unittest.TestCase):
         self.assertTrue(is_bad)
 
 class PageCrawlerTest(unittest.TestCase):
+    def test_clean_index_items(self):
+        with ThreadedHTTPServer("localhost", 8000) as server:
+            db_url = "%stest_resources/test_sqlite3.db" % server.url
+            db = opendir_dl.databasing.database_opener(db_url)
+        index_items = ["http://localhost/", 10, "3"]
+        crawler = opendir_dl.utils.PageCrawler(db, index_items)
+        self.assertEquals(len(crawler.url_triage_bucket), 3)
+        # TODO: This will need to check that the URL for items 10 and 3 match those items in the database
+        for i in crawler.url_triage_bucket:
+            self.assertTrue(opendir_dl.utils.is_url(i))
+
     def test_default_triage_method(self):
         db = opendir_dl.databasing.DatabaseWrapper('')
         db.connect()
@@ -188,11 +200,17 @@ class SearchEngineTest(unittest.TestCase):
 
     def test_exclusivity(self):
         search = opendir_dl.utils.SearchEngine()
+        # Tests that the exclusive is True by default
         self.assertTrue(search.exclusive)
         self.assertEquals(search.__dict__['_exclusivity'], sqlalchemy.and_)
+        # Sets exclusive to False and tests everything was tested as expected
         search.exclusive = False
         self.assertFalse(search.exclusive)
         self.assertEquals(search.__dict__['_exclusivity'], sqlalchemy.or_)
+        # Sets exclusive back to True and tests everything was set back to normal
+        search.exclusive = True
+        self.assertTrue(search.exclusive)
+        self.assertEquals(search.__dict__['_exclusivity'], sqlalchemy.and_)
 
     def test_db_missing(self):
         search = opendir_dl.utils.SearchEngine()
@@ -205,3 +223,27 @@ class HttpGetTest(unittest.TestCase):
         with ThreadedHTTPServer("localhost", 8000) as server:
             response = opendir_dl.utils.http_get(server.url)
         self.assertEquals(response[0]["status"], '200')
+
+class MakeDirPTest(unittest.TestCase):
+    def test_make_missing_path(self):
+        path = "mkdirp1/missing/path"
+        opendir_dl.utils.mkdir_p(path)
+        self.assertTrue(os.path.exists(path))
+        shutil.rmtree('mkdirp1')
+
+    def test_make_partially_missing_path(self):
+        path = "mkdirp2/path"
+        opendir_dl.utils.mkdir_p(path)
+        self.assertTrue(os.path.exists(path))
+        new_path = path + "/new_dir"
+        opendir_dl.utils.mkdir_p(new_path)
+        self.assertTrue(os.path.exists(new_path))
+        shutil.rmtree('mkdirp2')
+
+    def test_make_existing_path(self):
+        path = "mkdirp3/path/"
+        opendir_dl.utils.mkdir_p(path)
+        self.assertTrue(os.path.exists(path))
+        opendir_dl.utils.mkdir_p(path)
+        self.assertTrue(os.path.exists(path))
+        shutil.rmtree('mkdirp3')

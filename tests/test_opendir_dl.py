@@ -11,7 +11,7 @@ class ParseInputTest(unittest.TestCase):
         parsed_input = opendir_dl.ParseInput.from_list([])
         self.assertEqual(parsed_input.flags, [])
         self.assertEqual(parsed_input.options, {})
-        self.assertEqual(parsed_input.command, opendir_dl.commands.help)
+        self.assertEqual(parsed_input.command, opendir_dl.commands.HelpCommand)
         self.assertEqual(parsed_input.command_values, [])
 
     def test_list_each(self):
@@ -19,13 +19,13 @@ class ParseInputTest(unittest.TestCase):
         parsed_input = opendir_dl.ParseInput.from_list(input_args)
         self.assertEqual(parsed_input.flags, ["quiet"])
         self.assertEqual(parsed_input.options, {"depth": 50})
-        self.assertEqual(parsed_input.command, opendir_dl.commands.index)
+        self.assertEqual(parsed_input.command, opendir_dl.commands.IndexCommand)
         self.assertEqual(parsed_input.command_values, ["http://localhost/"])
 
     def test_set_command(self):
         parsed_input = opendir_dl.ParseInput()
         parsed_input.set_command("download")
-        self.assertEqual(parsed_input.command, opendir_dl.commands.download)
+        self.assertEqual(parsed_input.command, opendir_dl.commands.DownloadCommand)
 
     def test_set_nonreal_command(self):
         parsed_input = opendir_dl.ParseInput()

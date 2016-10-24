@@ -3,9 +3,13 @@ from opendir_dl import commands
 class ParseInput(object):
     available_flags = ["inclusive", "quick", "quiet", "search", "no-index"]
     available_options = ["depth", "db", "delete", "type", "resource"]
-    available_commands = {"help": commands.help, "index": commands.index,
-                          "search": commands.search, "download": commands.download,
-                          "database": commands.database}
+    available_commands = {
+        "help": commands.HelpCommand,
+        "index": commands.IndexCommand,
+        "search": commands.SearchCommand,
+        "download": commands.DownloadCommand,
+        "database": commands.DatabaseCommand}
+
     def __init__(self):
         """Default values for the types of input
 
@@ -17,6 +21,13 @@ class ParseInput(object):
         self.flags = []
         self.options = {}
         self.command_values = []
+
+    def instantiate_command(self):
+        instance = self.command()
+        instance.flags = self.flags
+        instance.options = self.options
+        instance.values = self.command_values
+        return instance
 
     def add_flag(self, flag):
         # Make sure that the flag is an actual flag first
@@ -101,4 +112,5 @@ def main(raw_user_in):
     is run from a python shell. the result of these two examples is the same.
     """
     user_in = ParseInput.from_list(raw_user_in)
-    user_in.command(user_in.command_values, user_in.flags, user_in.options)
+    command_instance = user_in.instantiate_command()
+    command_instance.run()

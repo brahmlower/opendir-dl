@@ -24,7 +24,7 @@ class DatabaseWrapper(object):
         # self.db_conn.query that way stuff can just call wrapper.query like
         # normal. This is overwritten with the reference to db_conn.query
         # when the database is connected
-        pass
+        pass # pragma: no cover
 
     def is_connected(self):
         """True/False value for if the DatabaseWrapper instance is connected
@@ -40,6 +40,9 @@ class DatabaseWrapper(object):
         database_session = sessionmaker(bind=database_engine)
         self.db_conn = database_session()
         setattr(self, 'query', self.db_conn.query)
+
+    def close(self):
+        self.db_conn.close()
 
     @classmethod
     def from_default(cls):

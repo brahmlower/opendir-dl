@@ -14,6 +14,7 @@ clean:
 	rm opendir_dl/*.pyc
 	rm tests/*.pyc
 	rm -rf coverage_html
+	rm -f .coverage
 
 clean_db:
 	rm -f sqlite3.db

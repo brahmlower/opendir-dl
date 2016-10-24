@@ -58,6 +58,14 @@ class DatabaseWrapperTest(unittest.TestCase):
         self.assertTrue(db.is_connected())
         self.assertEquals(db.query(opendir_dl.models.FileIndex).count(), 14)
 
+    def test_from_404_url(self):
+        expected_error = "HTTP GET request failed with error '404'. Expected '200'."
+        with self.assertRaises(ValueError) as context:
+            with ThreadedHTTPServer("localhost", 8000) as server:
+                url = "%stest_resources/test_missing_sqlite3.db" % server.url
+                db = opendir_dl.databasing.DatabaseWrapper.from_url(url)
+        self.assertEqual(str(context.exception), expected_error)
+
 class DatabaseOpenerTest(unittest.TestCase):
     def test_provided_none(self):
         db_wrapper = opendir_dl.databasing.database_opener()
@@ -76,10 +84,12 @@ class DatabaseOpenerTest(unittest.TestCase):
 
     def test_provided_named_db(self):
         db_name = "secondary"
-        opendir_dl.commands.database([db_name], [], {})
+        instance = opendir_dl.commands.DatabaseCommand()
+        instance.values = [db_name]
+        instance.run()
         db_wrapper = opendir_dl.databasing.database_opener(db_name)
         self.assertTrue(db_wrapper.is_connected())
-        opendir_dl.commands.database([db_name], [], {"delete": db_name})
+        #opendir_dl.commands.DatabaseCommand([db_name], [], {"delete": db_name})
 
     def tests_not_matching(self):
         provided_string = "abc_doesnt-match a database"

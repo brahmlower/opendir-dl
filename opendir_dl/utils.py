@@ -4,8 +4,9 @@ import urllib
 import urlparse
 import datetime
 import httplib2
-from bs4 import BeautifulSoup
 import sqlalchemy
+from bs4 import BeautifulSoup
+from prettytable import PrettyTable
 from opendir_dl.models import FileIndex
 
 class PageCrawler(object):
@@ -341,3 +342,11 @@ def is_url(candidate):
         return url.path != '' and url.scheme != '' and url.netloc != ''
     except AttributeError:
         return False
+
+def create_table(data, columns):
+    output_table = PrettyTable(columns)
+    output_table.padding_width = 1
+    output_table.align = 'l'
+    for i in data:
+        output_table.add_row([i.pkid, i.name, i.url, i.last_indexed])
+    return output_table.get_string()
