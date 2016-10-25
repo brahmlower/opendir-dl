@@ -10,6 +10,7 @@ import sqlalchemy
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'opendir_dl'))
 import opendir_dl
 from . import ThreadedHTTPServer
+from . import TestWithConfig
 
 class IsUrlTest(unittest.TestCase):
     """Tests opendir_dl.utils.is_url
@@ -157,11 +158,11 @@ class BadAnchorTest(unittest.TestCase):
         is_bad = opendir_dl.utils.bad_anchor(href)
         self.assertTrue(is_bad)
 
-class PageCrawlerTest(unittest.TestCase):
+class PageCrawlerTest(TestWithConfig):
     def test_clean_index_items(self):
         with ThreadedHTTPServer("localhost", 8000) as server:
             db_url = "%stest_resources/test_sqlite3.db" % server.url
-            db = opendir_dl.databasing.database_opener(db_url)
+            db = opendir_dl.databasing.database_opener(self.config, db_url)
         index_items = ["http://localhost/", 10, "3"]
         crawler = opendir_dl.utils.PageCrawler(db, index_items)
         self.assertEquals(len(crawler.url_triage_bucket), 3)

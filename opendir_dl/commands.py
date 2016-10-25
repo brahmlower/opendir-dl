@@ -1,6 +1,5 @@
 import os
 import yaml
-import appdirs
 from prettytable import PrettyTable
 from opendir_dl.databasing import database_opener
 from opendir_dl.utils import SearchEngine
@@ -24,9 +23,11 @@ class BaseCommand(object):
 
     def db_connect(self):
         if self.db_connected():
-            raise ValueError
-        resource = self.options.get('db', None)
-        self.db_wrapper = database_opener(resource)
+            raise ValueError("Database already connected")
+        if not self.config:
+            raise ValueError("No valid configuration has been set")
+        resource = self.options.get("db", "default")
+        self.db_wrapper = database_opener(self.config, resource)
 
     def db_disconnect(self):
         if not self.db_connected():

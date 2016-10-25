@@ -1,6 +1,5 @@
 import os
 import tempfile
-import appdirs
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from opendir_dl.utils import http_get
@@ -42,13 +41,13 @@ class DatabaseWrapper(object):
         self.db_conn.close()
 
     @classmethod
-    def from_default(cls):
+    def from_default(cls, config):
         """Get a default instance of DatabaseWrapper
 
         This would be used over `DatabaseWrapper()` because this returns an
         object where self.db_conn is already an established database session
         """
-        source = "%s/%s" % (appdirs.user_data_dir('opendir-dl'), cls.default_db)
+        source = config.get_storage_path(cls.default_db)
         dbw_inst = cls(source)
         dbw_inst.connect()
         return dbw_inst
@@ -57,7 +56,7 @@ class DatabaseWrapper(object):
     def from_fs(cls, path):
         """ Gets a database session from a cache of a remote database
 
-        This method will need additional sanitation on the `path` value.
+        TODO: This method will need additional sanitation on the `path` value.
         relative and absolute paths *should* work, but anything referecing `~`
         will need to be expanded first.
         """
@@ -90,14 +89,15 @@ class DatabaseWrapper(object):
             raise ValueError(message)
 
     @classmethod
-    def from_name(cls, name, config):
+    def from_name(cls, config, name):
         if not config.databases.get(name, None):
             message = "Cound not find database with the name '%s'." % name
             raise ValueError(message)
+        print config.databases
         database_path = os.path.join(config.parent_dir, config.databases[name]['resource'])
         return cls.from_fs(database_path)
 
-def database_opener(database_string=None, config=None):
+def database_opener(config, database_string="default"):
     """Creates an instance of DatabaseWrapper
 
     We don't know what resource type the database_string is referencing. It can
@@ -107,15 +107,14 @@ def database_opener(database_string=None, config=None):
     * named database
     * None (resulting in default database)
     """
-    # This gets us the default configuration
-    if not database_string:
-        return DatabaseWrapper.from_default()
+    if not config.__class__.__name__ == "Configuration":#isinstance(Configuration, config):
+        raise ValueError("Invalid configuration object. Must be of type 'opendir_dl.Configuration'")
+    # Load from a named database
+    if database_string in config.databases.keys():
+        return DatabaseWrapper.from_name(config, database_string)
     # We were given a URL
     if is_url(database_string):
         return DatabaseWrapper.from_url(database_string)
-    # Load from a named database
-    if config != None and database_string in config.databases.keys():
-        return DatabaseWrapper.from_name(database_string, config)
     # It might be a filesystem path
     fs_path = os.path.expandvars(database_string)
     fs_path = os.path.expanduser(fs_path)

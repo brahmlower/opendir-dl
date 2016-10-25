@@ -43,6 +43,7 @@ class ThreadedHTTPServer(object):
 class TestWithConfig(unittest.TestCase):
     def __init__(self, methodName="runTest"):
         super(TestWithConfig, self).__init__(methodName)
+        self.config = None
         self.setUp = self.set_up
         self.tearDown = self.tear_down
 

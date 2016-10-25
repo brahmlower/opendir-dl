@@ -181,7 +181,7 @@ It is worth noting that there is no point in providing the `--db` option while s
 opendir-dl download --db http://example.com/path/bill.db http://somesite.com/file.iso
 ```
 
-**Download Search Results**
+**Download Search Results** (temporarily broken)
 
 You've crafted your search to find the exact files you want, so now it's time to download all of them. This can be done by providing the same parameters to the download command, in addition to the flag `--search`. Lets say you would like to download all files returned in the following search.
 ```

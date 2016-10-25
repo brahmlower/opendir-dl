@@ -29,9 +29,11 @@ class DatabaseWrapperTest(unittest.TestCase):
         self.assertEquals(db.db_conn.query, db.query)
 
     def test_from_default(self):
-        db = opendir_dl.databasing.DatabaseWrapper.from_default()
+        data_folder = "opendir-dl-test"
+        config = opendir_dl.Configuration(config_path = opendir_dl.utils.get_config_path("config.yml", data_folder))
+        db = opendir_dl.databasing.DatabaseWrapper.from_default(config)
         self.assertTrue(db.is_connected())
-        db_path = appdirs.user_data_dir('opendir-dl') + "/default.db"
+        db_path = appdirs.user_data_dir(data_folder) + "/default.db"
         self.assertEquals(str(db.db_conn.bind.url), 'sqlite:///%s' % db_path)
 
     def test_from_data(self):
@@ -69,18 +71,18 @@ class DatabaseWrapperTest(unittest.TestCase):
 
 class DatabaseOpenerTest(TestWithConfig):
     def test_provided_none(self):
-        db_wrapper = opendir_dl.databasing.database_opener()
+        db_wrapper = opendir_dl.databasing.database_opener(self.config)
         self.assertTrue(db_wrapper.is_connected())
 
     def test_provided_url(self):
         with ThreadedHTTPServer("localhost", 8000) as server:
             db_url = "http://localhost:8000/test_resources/test_sqlite3.db"
-            db_wrapper = opendir_dl.databasing.database_opener(db_url)
+            db_wrapper = opendir_dl.databasing.database_opener(self.config, db_url)
         self.assertTrue(db_wrapper.is_connected())
 
     def test_provided_filesystem(self):
         db_path = "test_resources/test_sqlite3.db"
-        db_wrapper = opendir_dl.databasing.database_opener(db_path)
+        db_wrapper = opendir_dl.databasing.database_opener(self.config, db_path)
         self.assertTrue(db_wrapper.is_connected())
 
     def test_provided_named_db(self):
@@ -89,10 +91,10 @@ class DatabaseOpenerTest(TestWithConfig):
         instance.config = self.config
         instance.values = [db_name]
         instance.run()
-        db_wrapper = opendir_dl.databasing.database_opener(db_name, self.config)
+        db_wrapper = opendir_dl.databasing.database_opener(self.config, db_name)
         self.assertTrue(db_wrapper.is_connected())
 
     def tests_not_matching(self):
         provided_string = "abc_doesnt-match a database"
         with self.assertRaises(ValueError) as context:
-            opendir_dl.databasing.database_opener(provided_string)
+            opendir_dl.databasing.database_opener(self.config, provided_string)

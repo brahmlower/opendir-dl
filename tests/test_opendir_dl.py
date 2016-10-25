@@ -54,7 +54,7 @@ class ParseInputTest(unittest.TestCase):
 
 class MainTest(unittest.TestCase):
     def test_no_args(self):
-        opendir_dl.main([])
+        opendir_dl.main(["--debug"])
 
     def test_arg_list(self):
-        opendir_dl.main(["search", "--inclusive" "test"])
+        opendir_dl.main(["search", "--debug", "--inclusive" "test"])
