@@ -7,7 +7,7 @@ from opendir_dl.utils import mkdir_p
 
 class ParseInput(object):
     available_flags = ["debug", "inclusive", "quick", "quiet", "search", "no-index"]
-    available_options = ["depth", "db", "delete", "type", "resource"]
+    available_options = ["depth", "db", "delete", "type", "resource", "rawsql"]
     available_commands = {
         "help": commands.HelpCommand,
         "index": commands.IndexCommand,

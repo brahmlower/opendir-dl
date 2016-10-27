@@ -1,5 +1,6 @@
 import os
 import yaml
+import sqlalchemy
 from prettytable import PrettyTable
 from opendir_dl.databasing import database_opener
 from opendir_dl.utils import SearchEngine
@@ -72,11 +73,18 @@ class SearchCommand(BaseCommand):
         # Prepare the database connection
         if not self.db_connected():
             self.db_connect()
-        search = SearchEngine(self.db_wrapper.db_conn, self.values)
-        search.exclusive = self.has_flag("inclusive")
-        results = search.query()
-        columns = ["ID", "Name", "URL", "Last Indexed"]
-        print create_table(results, columns)
+        if "rawsql" in self.options.keys():
+            rawsql = sqlalchemy.text(self.options['rawsql'])
+            results = self.db_wrapper.db_conn.execute(rawsql)
+            print create_table(results)
+            #for i in results:
+            #    print i
+        else:
+            search = SearchEngine(self.db_wrapper.db_conn, self.values)
+            search.exclusive = self.has_flag("inclusive")
+            results = search.query()
+            columns = ["ID", "Name", "URL", "Last Indexed"]
+            print create_table(results, columns)
 
 class HelpCommand(BaseCommand):
     valid_options = {}

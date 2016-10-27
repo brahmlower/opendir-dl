@@ -344,12 +344,17 @@ def is_url(candidate):
     except AttributeError:
         return False
 
-def create_table(data, columns):
-    output_table = PrettyTable(columns)
+def create_table(data, columns=None):
+    if isinstance(data, sqlalchemy.engine.ResultProxy):
+        output_table = PrettyTable(data.keys())
+        for row in data:
+            output_table.add_row(row)
+    else:
+        output_table = PrettyTable(columns)
+        for i in data:
+            output_table.add_row([i.pkid, i.name, i.url, i.last_indexed])
     output_table.padding_width = 1
     output_table.align = 'l'
-    for i in data:
-        output_table.add_row([i.pkid, i.name, i.url, i.last_indexed])
     return output_table.get_string()
 
 def get_config_path(file_name, project_name="opendir-dl"):

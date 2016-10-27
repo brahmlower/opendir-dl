@@ -93,7 +93,6 @@ class DatabaseWrapper(object):
         if not config.databases.get(name, None):
             message = "Cound not find database with the name '%s'." % name
             raise ValueError(message)
-        print config.databases
         database_path = os.path.join(config.parent_dir, config.databases[name]['resource'])
         return cls.from_fs(database_path)
 

@@ -5,6 +5,7 @@
 This is an indexer and downloader for open directories.
 
 ## Installation
+
 While the project is in development, the best way to install the project is using the vcs support in pip:
 ```
 user@debian:~$ pip install -e git+https://github.com/bplower/opendir-dl#egg=opendir-dl
@@ -22,14 +23,14 @@ Since this project is still a work in progress, please note that not every featu
 
 ### Index
 
-**Basic index**
+**Basic Index**
 
 This is the normal index. It will collect metadata for each file it indexes using the HEAD HTTP method
 ```
 opendir-dl index http://domain.com/some/path
 ```
 
-**Quick index**
+**Quick Index**
 
 The quick index will do everything the same as the Basic index except for data collection via the HEAD request
 ```
@@ -78,13 +79,6 @@ You can provide the inclusive flag to specify that the search should entries tha
 opendir-dl search --inclusive png jpg
 ```
 
-**URL Search**
-
-You may need to search the URL field rather than the name field. In this case, we're searching for any file whose URL contains the string 'iso/'.
-```
-opendir-dl search --urlsearch iso/
-```
-
 **Searching Non-Default Database**
 
 You may want to specify a database to search, other than the default database. The `--db` option works with several types of sources.
@@ -102,6 +96,20 @@ opendir-dl search --db http://example.com/path/example.db iso
 Named database caches (planned)
 ```
 opendir-dl search --db billsdb jpg
+```
+
+**Searching with Raw SQL**
+
+Depending on your level of comfort with SQL, you may wish to search by using raw SQL statements. This can be accomplished by providing the `--rawsql` option.
+```
+opendir-dl search --rawsql "select pkid,url,last_indexed from remotefile where pkid >=58"
++------+-------------------------------------------+----------------------------+
+| pkid | url                                       | last_indexed               |
++------+-------------------------------------------+----------------------------+
+| 58   | http://192.168.0.100:8000/testing.html    | 2016-10-27 04:03:33.997490 |
+| 59   | http://192.168.0.100:8000/test_example.py | 2016-10-27 04:03:34.018469 |
+| 60   | http://192.168.0.100:8000/tmp.txt         | 2016-10-27 04:03:34.029762 |
++------+-------------------------------------------+----------------------------+
 ```
 
 ### Cached Databases
