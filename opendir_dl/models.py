@@ -9,7 +9,7 @@ MODELBASE = declarative_base()
 class FileIndex(MODELBASE):
     """This represents a remote file
     """
-    __tablename__ = "remotefile"
+    __tablename__ = "fileindex"
     pkid = Column(Integer, primary_key=True)
     url = Column(String)
     name = Column(String)

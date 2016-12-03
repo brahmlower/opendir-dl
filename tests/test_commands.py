@@ -23,7 +23,6 @@ class BaseCommandTest(TestWithConfig):
     def test_database_interaction(self):
         instance = opendir_dl.commands.BaseCommand()
         instance.config = self.config
-        print instance.config
         self.assertFalse(instance.db_connected())
         instance.db_connect()
         self.assertTrue(instance.db_connected())

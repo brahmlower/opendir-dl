@@ -106,7 +106,7 @@ def database_opener(config, database_string="default"):
     * named database
     * None (resulting in default database)
     """
-    if not config.__class__.__name__ == "Configuration":#isinstance(Configuration, config):
+    if not config.__class__.__name__ == "Configuration":
         raise ValueError("Invalid configuration object. Must be of type 'opendir_dl.Configuration'")
     # Load from a named database
     if database_string in config.databases.keys():
