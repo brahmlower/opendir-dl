@@ -1,5 +1,4 @@
 import os
-import yaml
 import sqlalchemy
 from prettytable import PrettyTable
 from opendir_dl.databasing import database_opener
@@ -63,7 +62,7 @@ class IndexCommand(BaseCommand):
         # Make the crawler, configure it, start it
         crawler = PageCrawler(self.db_wrapper.db_conn, self.values)
         crawler.quick = self.has_flag("quick")
-        crawler.crawl()
+        crawler.run()
 
 class SearchCommand(BaseCommand):
     valid_options = ["db"]#{"db": [type_url, type_id, type_filesystem, type_dbname]}

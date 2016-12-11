@@ -17,9 +17,9 @@ setup(
     # Packages:
     packages = ["opendir_dl"],
 
-    package_data = {'': ['opendir_dl/help.txt']},
+    package_data = {'opendir_dl': ['help.txt']},
 
-    scripts = ['opendir-dl'],
+    scripts = ['scripts/opendir-dl'],
 
     # Details:
     url = "https://github.com/bplower/opendir-dl",

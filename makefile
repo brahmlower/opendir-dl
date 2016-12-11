@@ -11,8 +11,8 @@ lint:
 	pylint -E opendir_dl
 
 clean:
-	rm opendir_dl/*.pyc
-	rm tests/*.pyc
+	rm -f opendir_dl/*.pyc
+	rm -f tests/*.pyc
 	rm -rf coverage_html
 	rm -f .coverage
 

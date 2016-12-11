@@ -27,7 +27,7 @@ class ParseInput(object):
         self.options = {}
         self.command_values = []
 
-    def instantiate_command(self, config = None):
+    def instantiate_command(self, config=None):
         instance = self.command()
         instance.config = config
         instance.flags = self.flags
@@ -110,7 +110,7 @@ class ParseInput(object):
         return clean_input
 
 class Configuration(object):
-    def __init__(self, config_path = None):
+    def __init__(self, config_path=None):
         self.config_path = config_path
         self.parent_dir = os.path.abspath(os.path.join(self.config_path, os.pardir))
         self.databases = {}
@@ -135,7 +135,8 @@ class Configuration(object):
             self.save()
 
     def open(self):
-        # TODO: this should also verify the database entries. make sure each one is a dict containing resource and type
+        # TODO: this should also verify the database entries. make sure each one
+        # is a dict containing resource and type
         try:
             with open(self.config_path, 'r') as rfile:
                 config = yaml.load(rfile)
@@ -169,7 +170,7 @@ def main(raw_input_list):
     if "debug" in user_in.flags:
         config_path = get_config_path("config.yml", "opendir-dl-test")
     # Load the configuration from the file
-    config = Configuration(config_path = config_path)
+    config = Configuration(config_path=config_path)
     # Create and start the command
-    command_instance = user_in.instantiate_command(config = config)
+    command_instance = user_in.instantiate_command(config=config)
     command_instance.run()

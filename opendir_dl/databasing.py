@@ -4,7 +4,6 @@ import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from opendir_dl.utils import http_get
 from opendir_dl.utils import is_url
-from opendir_dl.utils import mkdir_p
 from opendir_dl.models import MODELBASE
 
 class DatabaseWrapper(object):
