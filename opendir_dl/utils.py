@@ -102,7 +102,7 @@ class PageCrawler(object):
                 for i, e in enumerate(new_urls):
                     if not self._thread_exit:
                         print "Thread {} triaging new url {} of {}.".format(thread_num, i+1, len(new_urls))
-                        self._triage_method(e, http_session = http_session)
+                        self._triage_method(e, http_session=http_session)
                     else:
                         break
                 self.set_idle_status(thread_num, True)
@@ -149,7 +149,7 @@ class PageCrawler(object):
         # Wait for the fileindex creator thread to finish
         self._fileindex_creator_thread.join()
 
-    def triage_standard(self, url, http_session = None):
+    def triage_standard(self, url, http_session=None):
         """Handles the URLs that are dumped into self.url_triage_bucket
         """
         # Get the head information about the URL. This will be necessary
@@ -261,7 +261,7 @@ class HttpHead(object):
         return file_entry
 
     @classmethod
-    def from_url(cls, url, http_session = None):
+    def from_url(cls, url, http_session=None):
         """Returns HEAD request data from the provided URL
 
         The dict is contains keys and values with data provided by the HEAD

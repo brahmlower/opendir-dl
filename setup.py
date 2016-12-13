@@ -17,8 +17,6 @@ setup(
     # Packages:
     packages = ["opendir_dl"],
 
-    package_data = {'opendir_dl': ['help.txt']},
-
     scripts = ['scripts/opendir-dl'],
 
     # Details:
