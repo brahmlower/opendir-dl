@@ -1,6 +1,4 @@
-import os
 from time import sleep
-import errno
 import urllib
 import urlparse
 import datetime
@@ -9,7 +7,6 @@ import socket
 from threading import Thread
 from threading import Lock
 import httplib2
-import appdirs
 import sqlalchemy
 from bs4 import BeautifulSoup
 from prettytable import PrettyTable
@@ -399,13 +396,6 @@ def url_to_filename(url):
         filename = "index.html"
     return filename
 
-def mkdir_p(path):
-    try:
-        os.makedirs(path)
-    except OSError as exc:
-        if not (exc.errno == errno.EEXIST and os.path.isdir(path)):
-            raise
-
 def write_file(filename, data):
     with open(filename, 'w') as wfile:
         wfile.write(data)
@@ -439,6 +429,3 @@ def format_tags(tags_list):
         return ''
     else:
         return " ".join(clean_list)
-
-def get_config_path(file_name, project_name="opendir-dl"):
-    return os.path.join(appdirs.user_data_dir(project_name), file_name)

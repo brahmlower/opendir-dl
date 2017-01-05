@@ -1,7 +1,5 @@
 import os
 import sys
-import shutil
-import appdirs
 import tempfile
 import unittest
 from urlparse import urlparse
@@ -229,26 +227,3 @@ class HttpGetTest(unittest.TestCase):
             response = opendir_dl.utils.http_get(server.url)
         self.assertEquals(response[0]["status"], '200')
 
-class MakeDirPTest(unittest.TestCase):
-    def test_make_missing_path(self):
-        path = "mkdirp1/missing/path"
-        opendir_dl.utils.mkdir_p(path)
-        self.assertTrue(os.path.exists(path))
-        shutil.rmtree('mkdirp1')
-
-    def test_make_partially_missing_path(self):
-        path = "mkdirp2/path"
-        opendir_dl.utils.mkdir_p(path)
-        self.assertTrue(os.path.exists(path))
-        new_path = path + "/new_dir"
-        opendir_dl.utils.mkdir_p(new_path)
-        self.assertTrue(os.path.exists(new_path))
-        shutil.rmtree('mkdirp2')
-
-    def test_make_existing_path(self):
-        path = "mkdirp3/path/"
-        opendir_dl.utils.mkdir_p(path)
-        self.assertTrue(os.path.exists(path))
-        opendir_dl.utils.mkdir_p(path)
-        self.assertTrue(os.path.exists(path))
-        shutil.rmtree('mkdirp3')

@@ -49,7 +49,7 @@ class TestWithConfig(unittest.TestCase):
 
     def set_up(self):
         # Open the configuration
-        config_path = opendir_dl.utils.get_config_path("config.yml", "opendir-dl-test")
+        config_path = opendir_dl.get_config_path("config.yml", "opendir-dl-test")
         self.config = opendir_dl.Configuration(config_path = config_path)
 
     def tear_down(self):

@@ -1,29 +1,109 @@
 import os
 import os.path
+import errno
 import yaml
+import appdirs
 from opendir_dl import commands
-from opendir_dl.utils import get_config_path
-from opendir_dl.utils import mkdir_p
+
+class CommandMenu(object):
+    def __init__(self):
+        self.default = self.raise_no_default
+        self.commands = {}
+        self.set_default(self.default)
+
+    def set_default(self, obj):
+        self.default = obj
+
+    def raise_no_default(self):
+        raise ValueError('No default action was set for this command.')
+
+    def help_menu(self):
+        print self.keywords()
+
+    def keywords(self):
+        temp_keywords = self.commands.keys()
+        return temp_keywords
+
+    def register(self, command, obj=None):
+        if isinstance(command, list) and obj != None:
+            # Register the menu command via the string registration method
+            self.register_list(command, obj)
+        elif isinstance(command, str) and obj != None:
+            # Register the menu command via the list registration method
+            self.register_string(command, obj)
+        elif obj == None:
+            # The register function is being used as a decorator. Define the
+            # decoration method, then return it. The decoration method simply
+            # calls this registration method again, with the provided command
+            # (regardless of string or list) and the object provided to the
+            # decorator function.
+            def decorator(obj):
+                self.register(command, obj)
+                return obj
+            return decorator
+        else:
+            raise ValueError('Insufficient arguments to register menu path.')
+
+    def register_string(self, command, obj, verbose=True):
+        if verbose:
+            print "[INFO] Registering command '{}' to function {}".format(command, obj)
+        if self.commands.get(command, False):
+            # This means the command has already been registered. In this case,
+            # there might be subcommands we don't want to overwrite, so we're just
+            # setting the default action here.
+            self.commands[command].set_default(obj)
+        else:
+            # This command hasn't been registered yet, so we can just create a
+            # new instance of CommandMenu and make the association
+            new_commandmenu = CommandMenu()
+            new_commandmenu.set_default(obj)
+            self.commands[command] = new_commandmenu
+
+    def register_list(self, command_list, obj, verbose=True):
+        if verbose:
+            print "[INFO] Registering command '{}' to function {}".format(" ".join(command_list), obj)
+        if not isinstance(command_list, list):
+            # Make sure we were given a list
+            raise TypeError("Value for command_list should be of type 'list'.")
+        if len(command_list) == 1:
+            # If there is only one command in the list, simply register it by calling self.register
+            self.register_string(command_list[0], obj, verbose=False)
+        else:
+            # There are multiple items in the list, so we need to pass the registration process
+            # down to the CommandMenu object associated with the next command in the list. This
+            # is a somewhat recursive process.
+            command_string = command_list.pop(0)
+            if command_string not in self.commands.keys():
+                # If this portion of the command hasn't been registered yet, make a new CommandMenu
+                # instance and make the association in the commands dict. A default is not set here
+                self.commands[command_string] = CommandMenu()
+            # Call the list registration for the target CommandMenu instance
+            target_command = self.commands[command_string]
+            target_command.register_list(command_list, obj, verbose=False)
+
+    def get(self, command_list):
+        # Call the default function if no command was provided
+        if len(command_list) == 0:
+            return self.default
+        try:
+            command_target = self.commands[command_list[0]]
+            return command_target.get(command_list[1:])
+        except:
+            raise ValueError("No command registered with the path '{}'.".format(command_list))
 
 class ParseInput(object):
     available_flags = ["debug", "inclusive", "quick", "quiet", "search", "no-index", "create"]
     available_options = ["depth", "db", "delete", "type", "resource", "rawsql", "update"]
-    available_commands = {
-        "help": commands.HelpCommand,
-        "index": commands.IndexCommand,
-        "search": commands.SearchCommand,
-        "download": commands.DownloadCommand,
-        "database": commands.DatabaseCommand,
-        "tags": commands.TagCommand}
 
-    def __init__(self):
+    def __init__(self, command_menu):
         """Default values for the types of input
 
         Defaults here are sane, so providing a fresh instance of ParseInput
         will not break anything. The default command is set to 'help' allowing
         us to run `opendir-dl` and get the help menu.
         """
-        self.command = self.available_commands["help"]
+        self.command_menu = command_menu
+        self.command = []
         self.flags = []
         self.options = {}
         self.command_values = []
@@ -53,18 +133,19 @@ class ParseInput(object):
             message = "No such option '%s'. Run 'help' for available options." % option
             raise ValueError(message)
 
-    def set_command(self, command):
-        if self.available_commands.get(command, None):
-            self.command = self.available_commands[command]
-        else:
-            message = "No such command '%s'. Run 'help' for available commands." % command
+    def set_command(self, command_list):
+        try:
+            self.command_menu.get(command_list)
+            self.command = command_list
+        except ValueError:
+            message = "No such command '%s'. Run 'help' for available commands." % command_list
             raise ValueError(message)
 
     @classmethod
-    def from_list(cls, input_list):
+    def from_list(cls, command_menu, input_list):
         """Create an instance of ParseInput with clean data
         """
-        clean_input = cls()
+        clean_input = cls(command_menu)
         # Assign command, return if none specified
         if len(input_list) == 0:
             return clean_input
@@ -73,7 +154,7 @@ class ParseInput(object):
         # command has been ommited. This will result in running the help
         # command, but we still want to process any remaining vaules like normal
         if input_list[0][0] != "-":
-            clean_input.set_command(input_list.pop(0))
+            clean_input.set_command([input_list.pop(0)])
         # Process options and flags
         # For more information on handling_option, see the first if statement
         # in the for loop
@@ -151,6 +232,16 @@ class Configuration(object):
         with open(self.config_path, 'w') as wfile:
             yaml.dump(config_dict, wfile, default_flow_style=False)
 
+def get_config_path(file_name, project_name="opendir-dl"):
+    return os.path.join(appdirs.user_data_dir(project_name), file_name)
+
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:
+        if not (exc.errno == errno.EEXIST and os.path.isdir(path)):
+            raise
+
 def main(raw_input_list):
     """The main function for handling any provided input
 
@@ -164,14 +255,31 @@ def main(raw_input_list):
     The the first example is run from the commandline, where the second example
     is run from a python shell. the result of these two examples is the same.
     """
+    # Define the available command menu
+    command_menu = CommandMenu()
+    command_menu.register(['help'], commands.HelpCommand)
+    command_menu.register(['index'], commands.IndexCommand)
+    command_menu.register(['search'], commands.SearchCommand)
+    command_menu.register(['download'], commands.DownloadCommand)
+    command_menu.register(['database'], commands.DatabaseCommand)
+    command_menu.register(['tags'], commands.TagCommand)
+    command_menu.set_default(commands.HelpCommand)
     # Parse the user input
-    user_in = ParseInput.from_list(raw_input_list)
-    # Pick the right config path
-    config_path = get_config_path("config.yml")
+    user_in = ParseInput.from_list(command_menu, raw_input_list)
+    # Build the configuration. If 'debug' is provided as a flag, point
+    # the path to a debug data directory.
+    config_filepath = get_config_path("config.yml")
     if "debug" in user_in.flags:
-        config_path = get_config_path("config.yml", "opendir-dl-test")
-    # Load the configuration from the file
-    config = Configuration(config_path=config_path)
+        config_filepath = get_config_path("config.yml", "opendir-dl-debug")
+    config = Configuration(config_path=config_filepath)
     # Create and start the command
-    command_instance = user_in.instantiate_command(config=config)
+    #command_instance = user_in.instantiate_command(config=config)
+    #command_instance.run()
+    # Get the reference to the command class, instantiate it, and then run it
+    target_command_ref = command_menu.get(user_in.command)
+    command_instance = target_command_ref()
+    command_instance.config = config
+    command_instance.flags = user_in.flags
+    command_instance.options = user_in.options
+    command_instance.values = user_in.command_values
     command_instance.run()

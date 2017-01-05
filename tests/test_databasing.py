@@ -30,7 +30,7 @@ class DatabaseWrapperTest(unittest.TestCase):
 
     def test_from_default(self):
         data_folder = "opendir-dl-test"
-        config = opendir_dl.Configuration(config_path = opendir_dl.utils.get_config_path("config.yml", data_folder))
+        config = opendir_dl.Configuration(config_path = opendir_dl.get_config_path("config.yml", data_folder))
         db = opendir_dl.databasing.DatabaseWrapper.from_default(config)
         self.assertTrue(db.is_connected())
         db_path = appdirs.user_data_dir(data_folder) + "/default.db"
