@@ -6,14 +6,15 @@ from opendir_dl.utils import get_config_path
 from opendir_dl.utils import mkdir_p
 
 class ParseInput(object):
-    available_flags = ["debug", "inclusive", "quick", "quiet", "search", "no-index"]
-    available_options = ["depth", "db", "delete", "type", "resource", "rawsql"]
+    available_flags = ["debug", "inclusive", "quick", "quiet", "search", "no-index", "create"]
+    available_options = ["depth", "db", "delete", "type", "resource", "rawsql", "update"]
     available_commands = {
         "help": commands.HelpCommand,
         "index": commands.IndexCommand,
         "search": commands.SearchCommand,
         "download": commands.DownloadCommand,
-        "database": commands.DatabaseCommand}
+        "database": commands.DatabaseCommand,
+        "tags": commands.TagCommand}
 
     def __init__(self):
         """Default values for the types of input

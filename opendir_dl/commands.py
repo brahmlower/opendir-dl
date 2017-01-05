@@ -7,6 +7,8 @@ from opendir_dl.utils import SearchEngine
 from opendir_dl.utils import PageCrawler
 from opendir_dl.utils import DownloadManager
 from opendir_dl.utils import create_table
+from models import Tags
+from models import FileIndex
 
 class BaseCommand(object):
     def __init__(self):
@@ -38,6 +40,36 @@ class BaseCommand(object):
 
     def run(self):
         pass # pragma: no cover
+
+class TagCommand(BaseCommand):
+    valid_options = ["db"]
+    valid_flags = []
+
+    def run(self):
+        # Prepare the database connection
+        if not self.db_connected():
+            self.db_connect()
+        if 'create' in self.flags:
+            for i in self.values:
+                new_tag = Tags(name=i)
+                self.db_wrapper.db_conn.add(new_tag)
+            self.db_wrapper.db_conn.commit()
+        elif 'delete' in self.flags:
+            # not implemented yet
+            pass
+        elif 'update' in self.options:
+            # Get the tag
+            tag = self.db_wrapper.db_conn.query(Tags).filter(Tags.name.like(self.values[0])).one()
+            # Get the file index
+            index_pkid = self.options['update']
+            file_index = self.db_wrapper.db_conn.query(FileIndex).get(index_pkid)
+            file_index.tags.append(tag)
+            self.db_wrapper.db_conn.commit()
+        else:
+            # Just list the tags we have
+            results = self.db_wrapper.db_conn.query(Tags).all()
+            for i in results:
+                print i.name, len(i.indexes)
 
 class DownloadCommand(BaseCommand):
     """Download:
@@ -193,13 +225,11 @@ class SearchCommand(BaseCommand):
             rawsql = sqlalchemy.text(self.options['rawsql'])
             results = self.db_wrapper.db_conn.execute(rawsql)
             print create_table(results)
-            #for i in results:
-            #    print i
         else:
             search = SearchEngine(self.db_wrapper.db_conn, self.values)
             search.exclusive = self.has_flag("inclusive")
             results = search.query()
-            columns = ["ID", "Name", "URL", "Last Indexed"]
+            columns = ["ID", "Name", "Last Indexed", "Tags"]
             print create_table(results, columns)
 
 class HelpCommand(BaseCommand):

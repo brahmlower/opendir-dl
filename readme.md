@@ -13,7 +13,7 @@ user@debian:~$ pip install -e git+https://github.com/bplower/opendir-dl#egg=open
 
 This will make the 'opendir-dl' script available:
 ```
-user@debian:~/opendir-dl$ which opendir-dl
+user@debian:~$ which opendir-dl
 /usr/local/bin/opendir-dl
 ```
 

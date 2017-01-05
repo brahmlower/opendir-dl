@@ -426,10 +426,19 @@ def create_table(data, columns=None):
     else:
         output_table = PrettyTable(columns)
         for i in data:
-            output_table.add_row([i.pkid, i.name, i.url, i.last_indexed])
+            output_table.add_row([i.pkid, i.name, i.last_indexed, format_tags(i.tags)])
     output_table.padding_width = 1
     output_table.align = 'l'
     return output_table.get_string()
+
+def format_tags(tags_list):
+    clean_list = []
+    for i in tags_list:
+        clean_list.append(i.name)
+    if clean_list == []:
+        return ''
+    else:
+        return " ".join(clean_list)
 
 def get_config_path(file_name, project_name="opendir-dl"):
     return os.path.join(appdirs.user_data_dir(project_name), file_name)
