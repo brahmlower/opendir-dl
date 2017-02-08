@@ -13,13 +13,25 @@ from models import FileIndex
 class BaseCommand(object):
     def __init__(self):
         self.config = None
-        self.options = {}
-        self.flags = []
-        self.values = []
+        self.arguments = None
         self.db_wrapper = None
 
     def has_flag(self, flag_name):
-        return flag_name in self.flags
+        # This pretty much just wraps the self.arguments dict, but it's useful
+        # in that we don't have to deail with the flag tracking implementation at all
+        if flag_name[0:2] != "--":
+            return self.arguments.get("--{}".format(flag_name)) == True
+        else:
+            return self.arguments.get(flag_name) == True
+
+    def get_option(self, option_name):
+        if option_name[0:2] != "--":
+            return self.arguments.get("--{}".format(option_name))
+        else:
+            return self.arguments.get(option_name)
+
+    def get_argument(self, argument_name):
+        return self.arguments.get("<{}>".format(argument_name))
 
     def db_connected(self):
         return self.db_wrapper != None
@@ -29,7 +41,12 @@ class BaseCommand(object):
             raise ValueError("Database already connected")
         if not self.config:
             raise ValueError("No valid configuration has been set")
-        resource = self.options.get("db", "default")
+
+        # Get the target database value from the arguments, or use the default
+        resource = "default"
+        if self.arguments != None and self.arguments.get("db") != None:
+            resource = self.arguments.get("db")
+        # Opend the referenced database
         self.db_wrapper = database_opener(self.config, resource)
 
     def db_disconnect(self):
@@ -41,38 +58,56 @@ class BaseCommand(object):
     def run(self):
         pass # pragma: no cover
 
-class TagCommand(BaseCommand):
-    valid_options = ["db"]
-    valid_flags = []
+# Version command
 
+class VersionCommand(BaseCommand):
     def run(self):
-        # Prepare the database connection
+        print "opendir-dl 0.0.0"
+
+# Tagging related commands
+
+class TagListCommand(BaseCommand):
+    def run(self):
         if not self.db_connected():
             self.db_connect()
-        if 'create' in self.flags:
-            for i in self.values:
-                new_tag = Tags(name=i)
-                self.db_wrapper.db_conn.add(new_tag)
-            self.db_wrapper.db_conn.commit()
-        elif 'delete' in self.flags:
-            # not implemented yet
-            pass
-        elif 'update' in self.options:
-            # Get the tag
-            tag = self.db_wrapper.db_conn.query(Tags).filter(Tags.name.like(self.values[0])).one()
-            # Get the file index
-            index_pkid = self.options['update']
-            file_index = self.db_wrapper.db_conn.query(FileIndex).get(index_pkid)
-            file_index.tags.append(tag)
-            self.db_wrapper.db_conn.commit()
-        else:
-            # Just list the tags we have
-            results = self.db_wrapper.db_conn.query(Tags).all()
-            for i in results:
-                print i.name, len(i.indexes)
+        # Just list the tags we have
+        results = self.db_wrapper.db_conn.query(Tags).all()
+        for i in results:
+            print i.name, len(i.indexes)
+
+class TagCreateCommand(BaseCommand):
+    def run(self):
+        if not self.db_connected():
+            self.db_connect()
+        for i in self.get_argument("name"):
+            new_tag = Tags(name=i)
+            self.db_wrapper.db_conn.add(new_tag)
+        self.db_wrapper.db_conn.commit()
+
+class TagDeleteCommand(BaseCommand):
+    def run(self):
+        if not self.db_connected():
+            self.db_connect()
+        raise ValueError("Not implemented yet! +1")
+
+class TagUpdateCommand(BaseCommand):
+    def run(self):
+        if not self.db_connected():
+            self.db_connect()
+        provided_index = self.get_argument("index")
+        provided_tag_name = self.get_argument("name")
+        # Get the tag
+        tag = self.db_wrapper.db_conn.query(Tags).filter(Tags.name.like(provided_tag_name)).one()
+        # Get the file index
+        #index_pkid = self.options['update']
+        file_index = self.db_wrapper.db_conn.query(FileIndex).get(provided_index)
+        file_index.tags.append(tag)
+        self.db_wrapper.db_conn.commit()
 
 class DownloadCommand(BaseCommand):
     """Download:
+    Usage:
+      opendir-dl download <id> (--no-index)
         Description:
                 Downloads the specified resource.
 
@@ -110,7 +145,8 @@ class DownloadCommand(BaseCommand):
         if not self.db_connected():
             self.db_connect()
         # Make the download manager, configure it, start it
-        dlman = DownloadManager(self.db_wrapper, self.values)
+        values = self.get_argument("index")
+        dlman = DownloadManager(self.db_wrapper, values)
         dlman.no_index = self.has_flag("no-index")
         dlman.start()
 
@@ -179,7 +215,8 @@ class IndexCommand(BaseCommand):
         if not self.db_connected():
             self.db_connect()
         # Make the crawler, configure it, start it
-        crawler = PageCrawler(self.db_wrapper.db_conn, self.values)
+        resource = self.get_argument("resource")
+        crawler = PageCrawler(self.db_wrapper.db_conn, resource)
         crawler.quick = self.has_flag("quick")
         crawler.run()
 
@@ -221,12 +258,15 @@ class SearchCommand(BaseCommand):
         # Prepare the database connection
         if not self.db_connected():
             self.db_connect()
-        if "rawsql" in self.options.keys():
-            rawsql = sqlalchemy.text(self.options['rawsql'])
+        #if "rawsql" in self.options.keys():
+        if self.has_flag("rawsql"):
+            #rawsql = sqlalchemy.text(self.options['rawsql'])
+            rawsql = sqlalchemy.text(' '.join(self.get_argument("terms")))
             results = self.db_wrapper.db_conn.execute(rawsql)
             print create_table(results)
         else:
-            search = SearchEngine(self.db_wrapper.db_conn, self.values)
+            terms = self.get_argument("terms")
+            search = SearchEngine(self.db_wrapper.db_conn, terms)
             search.exclusive = self.has_flag("inclusive")
             results = search.query()
             columns = ["ID", "Name", "Last Indexed", "Tags"]
@@ -286,108 +326,25 @@ class HelpCommand(BaseCommand):
                 if command_dict[i].__doc__:
                     print command_dict[i].__doc__
 
-class DatabaseCommand(BaseCommand):
-    """Database:
-        Description:
-                The database command allows for CRUD opperations on database
-                profiles. These profiles are meant to make it eaiser to
-                frequently interract with non-default databases. These profiles
-                can be referenced from the index, search and download commands.
 
-        Options:
-                --type          This specifies the type of database we're
-                                defining. This should be one of the following
-                                values: 'filesystem', 'url', or 'alias'.
 
-                --resource      This is the resource being referenced by the
-                                database. Depending on the type, this will be
-                                either a filesystem path, url or the name of
-                                another database.
+# Database commands
 
-                --delete        This will remove a database from the database
-                                list, and delete the datbase file if possible
-                                (cannot delete databases of type url).
+class DatabaseListCommand(BaseCommand):
+    def run(self):
+        output_table = PrettyTable(['Name', 'Type', 'Resource'])
+        output_table.padding_width = 1
+        output_table.align = 'l'
+        for i in self.config.databases:
+            row = [i, self.config.databases[i]['type'], self.config.databases[i]['resource']]
+            output_table.add_row(row)
+        print output_table
 
-        Examples:
-                $ opendir-dl database
-                +---------+------------+------------+
-                | Name    | Type       | Resource   |
-                +---------+------------+------------+
-                | default | filesystem | default.db |
-                +---------+------------+------------+
-
-                Simply running the database command with no options or values
-                will list the available database profiles. With a fresh setup,
-                there will only be the default database listed.
-
-                $ opendir-dl database --resource ~/my_indexes.db my_indexes
-                $ opendir-dl database
-                +------------+------------+---------------------------+
-                | Name       | Type       | Resource                  |
-                +------------+------------+---------------------------+
-                | default    | filesystem | default.db                |
-                | my_indexes | filesystem | /home/sk4ly/my_indexes.db |
-                +------------+------------+---------------------------+
-
-                Creating a new database profile can be done by providing the
-                'resource' option with a reference to the database file,
-                followed by the name of the database profile. Here we've
-                created a database with the name 'my_indexes' which points to
-                the file 'my_indexes.db' within my user directory.
-
-                $ opendir-dl database --type url --resource http://opendir-dl.com/redditdb/index.db redditdb
-                $ opendir-dl database
-                +------------+------------+-----------------------------------------+
-                | Name       | Type       | Resource                                |
-                +------------+------------+-----------------------------------------+
-                | default    | filesystem | default.db                              |
-                | my_indexes | filesystem | /home/sk4ly/my_indexes.db               |
-                | redditdb   | url        | http://opendir-dl.com/redditdb/index.db |
-                +------------+------------+-----------------------------------------+
-
-                We can also create a database profile to a remote database by
-                providing an http/https url as the resource, and specifying the
-                database type as being a 'url'. In this instance we are calling
-                the profile 'redditdb'.
-
-                $ opendir-dl database --type alias --resource redditdb r
-                $ opendir-dl database
-                +------------+------------+-----------------------------------------+
-                | Name       | Type       | Resource                                |
-                +------------+------------+-----------------------------------------+
-                | default    | filesystem | default.db                              |
-                | my_indexes | filesystem | /home/sk4ly/my_indexes.db               |
-                | redditdb   | url        | http://opendir-dl.com/redditdb/index.db |
-                | r          | alias      | redditdb                                |
-                +------------+------------+-----------------------------------------+
-
-                Lastly, we can create alias's to other database. I don't know
-                if this is useful or not, but set the type to 'alias' and the
-                resource as the name of another database. Here I've created
-                an alias to the database 'redditdb' simply called 'r'.
-
-                $ opendir-dl database --delete my_indexes
-                $ opendir-dl database
-                +----------+------------+-----------------------------------------+
-                | Name     | Type       | Resource                                |
-                +----------+------------+-----------------------------------------+
-                | default  | filesystem | default.db                              |
-                | redditdb | url        | http://opendir-dl.com/redditdb/index.db |
-                | r        | alias      | redditdb                                |
-                +----------+------------+-----------------------------------------+
-
-                Eventually we will want to remove a database. This is acheived
-                by providing the 'delete' option with the value of the database
-                you'd like to delete. In this case we've removed the
-                'my_indexes' database.
-    """
-
-    valid_options = {}
-    valid_flags = []
-
-    def create_database(self):
+class DatabaseCreateCommand(BaseCommand):
+    def run(self):
         disallowed_db_names = ['default']
-        db_name = self.values[0]
+        #db_name = self.values[0]
+        db_name = self.get_argument("name")[0]
         # Validate the name for the new database
         if db_name in disallowed_db_names:
             message = "Invalid database name- cannot be in disallowed database name list."
@@ -399,15 +356,22 @@ class DatabaseCommand(BaseCommand):
             message = "Invalid database name- database with that name already exists."
             raise ValueError(message)
         # Set the database type and resource
-        if 'type' in self.options.keys() and 'resource' not in self.options.keys():
+        if self.get_option('type') and not self.get_option('resource'):
+        #if 'type' in self.options.keys() and 'resource' not in self.options.keys():
             # If we're specifying the type, we *must* specify the resource
             message = "Must provide resource when specifying a database type."
             raise ValueError(message)
-        db_type = self.options.get('type', 'filesystem')
+        db_type = self.get_option('type')
+        if not db_type:
+            db_type == 'filesystem'
+        #db_type = self.options.get('type', 'filesystem')
         if db_type not in ['filesystem', 'url', 'alias']:
             message = "Database type must be one of: url, filesystem, alias."
             raise ValueError(message)
-        db_resource = self.options.get('resource', db_name + ".db")
+        db_resource = self.get_option('resource')
+        if not db_resource:
+            db_resource = "{}.db".format(db_name)
+        #db_resource = self.options.get('resource', db_name + ".db")
         if db_type == "alias" and db_resource not in self.config.databases.keys():
             message = "Cannot create alias to database- no database named '%s'." % db_resource
             raise ValueError(message)
@@ -415,31 +379,113 @@ class DatabaseCommand(BaseCommand):
         self.config.databases[db_name] = {'type': db_type, 'resource': db_resource}
         self.config.save()
 
-    def delete_database(self):
+class DatabaseDeleteCommand(BaseCommand):
+    def run(self):
         # TODO: This won't delete the actual database file
-        target = self.options['delete']
-        if target == "default":
-            message = "Invalid database name- cannot delete default database."
-            raise ValueError(message)
-        if target not in self.config.databases.keys():
-            message = "Invalid database name- no database exists with that name."
-            raise ValueError(message)
-        self.config.databases.pop(target, None)
+        #target = self.options['delete']
+        target = self.get_argument("name")
+        for i in target:
+            if target == "default":
+                message = "Invalid database name- cannot delete default database."
+                raise ValueError(message)
+            if target not in self.config.databases.keys():
+                message = "Invalid database name- no database exists with that name."
+                raise ValueError(message)
+            self.config.databases.pop(target, None)
         self.config.save()
 
-    def list_databases(self):
-        output_table = PrettyTable(['Name', 'Type', 'Resource'])
-        output_table.padding_width = 1
-        output_table.align = 'l'
-        for i in self.config.databases:
-            row = [i, self.config.databases[i]['type'], self.config.databases[i]['resource']]
-            output_table.add_row(row)
-        print output_table
+# class DatabaseCommand(BaseCommand):
+#     """Database:
+#         Description:
+#                 The database command allows for CRUD opperations on database
+#                 profiles. These profiles are meant to make it eaiser to
+#                 frequently interract with non-default databases. These profiles
+#                 can be referenced from the index, search and download commands.
 
-    def run(self):
-        if len(self.values) > 0:
-            return self.create_database()
-        if self.options.get("delete", False):
-            return self.delete_database()
-        self.list_databases()
+#         Options:
+#                 --type          This specifies the type of database we're
+#                                 defining. This should be one of the following
+#                                 values: 'filesystem', 'url', or 'alias'.
 
+#                 --resource      This is the resource being referenced by the
+#                                 database. Depending on the type, this will be
+#                                 either a filesystem path, url or the name of
+#                                 another database.
+
+#                 --delete        This will remove a database from the database
+#                                 list, and delete the datbase file if possible
+#                                 (cannot delete databases of type url).
+
+#         Examples:
+#                 $ opendir-dl database
+#                 +---------+------------+------------+
+#                 | Name    | Type       | Resource   |
+#                 +---------+------------+------------+
+#                 | default | filesystem | default.db |
+#                 +---------+------------+------------+
+
+#                 Simply running the database command with no options or values
+#                 will list the available database profiles. With a fresh setup,
+#                 there will only be the default database listed.
+
+#                 $ opendir-dl database --resource ~/my_indexes.db my_indexes
+#                 $ opendir-dl database
+#                 +------------+------------+---------------------------+
+#                 | Name       | Type       | Resource                  |
+#                 +------------+------------+---------------------------+
+#                 | default    | filesystem | default.db                |
+#                 | my_indexes | filesystem | /home/sk4ly/my_indexes.db |
+#                 +------------+------------+---------------------------+
+
+#                 Creating a new database profile can be done by providing the
+#                 'resource' option with a reference to the database file,
+#                 followed by the name of the database profile. Here we've
+#                 created a database with the name 'my_indexes' which points to
+#                 the file 'my_indexes.db' within my user directory.
+
+#                 $ opendir-dl database --type url --resource http://opendir-dl.com/redditdb/index.db redditdb
+#                 $ opendir-dl database
+#                 +------------+------------+-----------------------------------------+
+#                 | Name       | Type       | Resource                                |
+#                 +------------+------------+-----------------------------------------+
+#                 | default    | filesystem | default.db                              |
+#                 | my_indexes | filesystem | /home/sk4ly/my_indexes.db               |
+#                 | redditdb   | url        | http://opendir-dl.com/redditdb/index.db |
+#                 +------------+------------+-----------------------------------------+
+
+#                 We can also create a database profile to a remote database by
+#                 providing an http/https url as the resource, and specifying the
+#                 database type as being a 'url'. In this instance we are calling
+#                 the profile 'redditdb'.
+
+#                 $ opendir-dl database --type alias --resource redditdb r
+#                 $ opendir-dl database
+#                 +------------+------------+-----------------------------------------+
+#                 | Name       | Type       | Resource                                |
+#                 +------------+------------+-----------------------------------------+
+#                 | default    | filesystem | default.db                              |
+#                 | my_indexes | filesystem | /home/sk4ly/my_indexes.db               |
+#                 | redditdb   | url        | http://opendir-dl.com/redditdb/index.db |
+#                 | r          | alias      | redditdb                                |
+#                 +------------+------------+-----------------------------------------+
+
+#                 Lastly, we can create alias's to other database. I don't know
+#                 if this is useful or not, but set the type to 'alias' and the
+#                 resource as the name of another database. Here I've created
+#                 an alias to the database 'redditdb' simply called 'r'.
+
+#                 $ opendir-dl database --delete my_indexes
+#                 $ opendir-dl database
+#                 +----------+------------+-----------------------------------------+
+#                 | Name     | Type       | Resource                                |
+#                 +----------+------------+-----------------------------------------+
+#                 | default  | filesystem | default.db                              |
+#                 | redditdb | url        | http://opendir-dl.com/redditdb/index.db |
+#                 | r        | alias      | redditdb                                |
+#                 +----------+------------+-----------------------------------------+
+
+#                 Eventually we will want to remove a database. This is acheived
+#                 by providing the 'delete' option with the value of the database
+#                 you'd like to delete. In this case we've removed the
+#                 'my_indexes' database.
+#     """

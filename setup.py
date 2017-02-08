@@ -28,6 +28,7 @@ setup(
     # Dependant packages:
     install_requires = [
         "lxml",
+        "docopt",
         "PyYAML",
         "appdirs",
         "httplib2",

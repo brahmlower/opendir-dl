@@ -3,6 +3,7 @@ import os.path
 import errno
 import yaml
 import appdirs
+from docopt import docopt
 from opendir_dl import commands
 
 class CommandMenu(object):
@@ -24,13 +25,13 @@ class CommandMenu(object):
         temp_keywords = self.commands.keys()
         return temp_keywords
 
-    def register(self, command, obj=None):
+    def register(self, command, obj=None, verbose=True):
         if isinstance(command, list) and obj != None:
             # Register the menu command via the string registration method
-            self.register_list(command, obj)
+            self.register_list(command, obj, verbose)
         elif isinstance(command, str) and obj != None:
             # Register the menu command via the list registration method
-            self.register_string(command, obj)
+            self.register_string(command, obj, verbose)
         elif obj == None:
             # The register function is being used as a decorator. Define the
             # decoration method, then return it. The decoration method simply
@@ -38,7 +39,7 @@ class CommandMenu(object):
             # (regardless of string or list) and the object provided to the
             # decorator function.
             def decorator(obj):
-                self.register(command, obj)
+                self.register(command, obj, verbose)
                 return obj
             return decorator
         else:
@@ -91,106 +92,6 @@ class CommandMenu(object):
         except:
             raise ValueError("No command registered with the path '{}'.".format(command_list))
 
-class ParseInput(object):
-    available_flags = ["debug", "inclusive", "quick", "quiet", "search", "no-index", "create"]
-    available_options = ["depth", "db", "delete", "type", "resource", "rawsql", "update"]
-
-    def __init__(self, command_menu):
-        """Default values for the types of input
-
-        Defaults here are sane, so providing a fresh instance of ParseInput
-        will not break anything. The default command is set to 'help' allowing
-        us to run `opendir-dl` and get the help menu.
-        """
-        self.command_menu = command_menu
-        self.command = []
-        self.flags = []
-        self.options = {}
-        self.command_values = []
-
-    def instantiate_command(self, config=None):
-        instance = self.command()
-        instance.config = config
-        instance.flags = self.flags
-        instance.options = self.options
-        instance.values = self.command_values
-        return instance
-
-    def add_flag(self, flag):
-        # Make sure that the flag is an actual flag first
-        if flag in self.available_flags:
-            # Now make sure we haven't already added this flag
-            if flag not in self.flags:
-                self.flags.append(flag)
-        else:
-            message = "No such flag '%s'. Run 'help' for available flags." % flag
-            raise ValueError(message)
-
-    def add_option(self, option, value):
-        if option in self.available_options:
-            self.options[option] = value
-        else:
-            message = "No such option '%s'. Run 'help' for available options." % option
-            raise ValueError(message)
-
-    def set_command(self, command_list):
-        try:
-            self.command_menu.get(command_list)
-            self.command = command_list
-        except ValueError:
-            message = "No such command '%s'. Run 'help' for available commands." % command_list
-            raise ValueError(message)
-
-    @classmethod
-    def from_list(cls, command_menu, input_list):
-        """Create an instance of ParseInput with clean data
-        """
-        clean_input = cls(command_menu)
-        # Assign command, return if none specified
-        if len(input_list) == 0:
-            return clean_input
-        # Checks if the first character of the first input value is a dash
-        # which would indicate that the value is an option or flag, and the
-        # command has been ommited. This will result in running the help
-        # command, but we still want to process any remaining vaules like normal
-        if input_list[0][0] != "-":
-            clean_input.set_command([input_list.pop(0)])
-        # Process options and flags
-        # For more information on handling_option, see the first if statement
-        # in the for loop
-        handling_option = None
-        for idx, val in enumerate(input_list):
-            # Check if we're in the process of handling an option
-            # handling_option value indicates if we're in the process of
-            # handling and option, which is an association of a key followed by
-            # a value in the immediatly following list item. If handling_option
-            # equals None, we are not handling any options, but if it is a
-            # string, we are handling the option of that value, meaning we will
-            # associate that value with the values we're currently handling
-            # within the self.options dictionary
-            if handling_option:
-                clean_input.add_option(handling_option, val)
-                handling_option = None
-                continue
-            # Check if the value is a flag
-            if val[0] == "-" and val.strip("-") in cls.available_flags:
-                cleaned_flag = val.strip("-")
-                clean_input.add_flag(cleaned_flag)
-                continue
-            # Check if the value is an option
-            if val[0] == "-" and val.strip("-") in cls.available_options:
-                handling_option = val.strip("-")
-                continue
-            # Reaching this statement means everything from this index to the
-            # end of the list should be treated as command values. We will
-            # assume it's all command values. Add it to the list, then break
-            # out of the loop
-            else:
-                clean_input.command_values = input_list[idx:]
-                break
-        # Return the new parsed input object
-        return clean_input
-
 class Configuration(object):
     def __init__(self, config_path=None):
         self.config_path = config_path
@@ -216,7 +117,7 @@ class Configuration(object):
         if not os.path.exists(self.config_path):
             self.save()
 
-    def open(self):
+    def open(self, allow_fail=False):
         # TODO: this should also verify the database entries. make sure each one
         # is a dict containing resource and type
         try:
@@ -224,8 +125,10 @@ class Configuration(object):
                 config = yaml.load(rfile)
             self.databases = config['databases']
         except IOError:
+            if allow_fail:
+                raise
             self.create()
-            self.open()
+            self.open(allow_fail=True)
 
     def save(self):
         config_dict = {"databases": self.databases}
@@ -242,44 +145,77 @@ def mkdir_p(path):
         if not (exc.errno == errno.EEXIST and os.path.isdir(path)):
             raise
 
+def walk_menu_path(command_menu, arguments):
+    command_list = []
+    # While we have a target menu
+    while command_menu != None:
+        current_menu = command_menu
+        command_menu = None
+        for i in current_menu.keywords():
+            if arguments.get(i):
+                command_list.append(i)
+                command_menu = current_menu.commands[i]
+    return command_list
+
 def main(raw_input_list):
-    """The main function for handling any provided input
+    """
+    Usage:
+      opendir-dl help [options] [command]...
+      opendir-dl version [options]
+      opendir-dl index [options] [--quick] [--depth=<int>] <resource>...
+      opendir-dl search [options] [--inclusive] [--rawsql] <terms>...
+      opendir-dl download [options] <index>...
+      opendir-dl tag list [options]
+      opendir-dl tag create [options] <name>...
+      opendir-dl tag delete [options] <name>...
+      opendir-dl tag update [options] <name> <index>
+      opendir-dl database list [options]
+      opendir-dl database create [options] <name> [--type=<type>] [--resource=<resource>]
+      opendir-dl database delete [options] <name>...
 
-    Consider the following two examples
+    Options:
+      --debug       Run the command in debug mode. This changes the configuration
+                    path to use, preventing database polution.
+      -v, --verbose  How loud should we be? By default this can be a noisy
+                    application.
+      -d <db>, --db <db>  This specifies the database to be used while executing
+                    the command. The provided value can be a URL, a file path, or a
+                    database profile. URLs and file paths must point to a valid
+                    opendir-dl sqlite3 database file. Valid database profiles's
+                    are explained in the Database section.
 
-        user@debian:~$ opendir-dl index --quiet http://localhost:8000/
-
-        >>> import opendir_dl
-        >>> opendir_dl.main(["index", "--quiet", "http://localhost:8000/"])
-
-    The the first example is run from the commandline, where the second example
-    is run from a python shell. the result of these two examples is the same.
     """
     # Define the available command menu
     command_menu = CommandMenu()
-    command_menu.register(['help'], commands.HelpCommand)
-    command_menu.register(['index'], commands.IndexCommand)
-    command_menu.register(['search'], commands.SearchCommand)
-    command_menu.register(['download'], commands.DownloadCommand)
-    command_menu.register(['database'], commands.DatabaseCommand)
-    command_menu.register(['tags'], commands.TagCommand)
-    command_menu.set_default(commands.HelpCommand)
+    command_menu.register(['help'], commands.HelpCommand, verbose=False)
+    command_menu.register(['version'], commands.VersionCommand, verbose=False)
+    command_menu.register(['index'], commands.IndexCommand, verbose=False)
+    command_menu.register(['search'], commands.SearchCommand, verbose=False)
+    command_menu.register(['download'], commands.DownloadCommand, verbose=False)
+    command_menu.register(['tag', 'list'], commands.TagListCommand, verbose=False)
+    command_menu.register(['tag', 'create'], commands.TagCreateCommand, verbose=False)
+    command_menu.register(['tag', 'delete'], commands.TagDeleteCommand, verbose=False)
+    command_menu.register(['tag', 'update'], commands.TagUpdateCommand, verbose=False)
+    command_menu.register(['database', 'list'], commands.DatabaseListCommand, verbose=False)
+    command_menu.register(['database', 'create'], commands.DatabaseCreateCommand, verbose=False)
+    command_menu.register(['database', 'delete'], commands.DatabaseDeleteCommand, verbose=False)
+
     # Parse the user input
-    user_in = ParseInput.from_list(command_menu, raw_input_list)
+    arguments = docopt(main.__doc__, argv=raw_input_list)
+    if arguments.get("--debug"):
+        print arguments
+    command_path = walk_menu_path(command_menu, arguments)
+
     # Build the configuration. If 'debug' is provided as a flag, point
     # the path to a debug data directory.
     config_filepath = get_config_path("config.yml")
-    if "debug" in user_in.flags:
+    if arguments.get('--debug'):
         config_filepath = get_config_path("config.yml", "opendir-dl-debug")
     config = Configuration(config_path=config_filepath)
-    # Create and start the command
-    #command_instance = user_in.instantiate_command(config=config)
-    #command_instance.run()
+
     # Get the reference to the command class, instantiate it, and then run it
-    target_command_ref = command_menu.get(user_in.command)
+    target_command_ref = command_menu.get(command_path)
     command_instance = target_command_ref()
     command_instance.config = config
-    command_instance.flags = user_in.flags
-    command_instance.options = user_in.options
-    command_instance.values = user_in.command_values
+    command_instance.arguments = arguments
     command_instance.run()

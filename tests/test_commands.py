@@ -59,12 +59,13 @@ class CommandIndexTest(TestWithConfig):
             instance.values = [url]
             instance.run()
 
-class CommandDatabaseTest(TestWithConfig):
+class CommandDatabaseListTest(TestWithConfig):
     def test_list(self):
         instance = opendir_dl.commands.DatabaseCommand()
         instance.config = self.config
         instance.run()
 
+class CommandDatabaseDeleteTest(TestWithConfig):
     def test_create_and_delete_database(self):
         # Create a database to be deleted
         instance1 = opendir_dl.commands.DatabaseCommand()
@@ -84,6 +85,7 @@ class CommandDatabaseTest(TestWithConfig):
         with self.assertRaises(ValueError) as context:
             instance.run()
 
+class CommandDatabaseCreateTest(TestWithConfig):
     def test_attempt_bad_type(self):
         instance = opendir_dl.commands.DatabaseCommand()
         instance.config = self.config
