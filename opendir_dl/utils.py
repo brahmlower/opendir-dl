@@ -267,12 +267,21 @@ class HttpHead(object):
         """
         if not http_session:
             http_session = httplib2.Http(disable_ssl_certificate_validation=True)
-        response = None
-        while not response:
-            try:
-                response = http_session.request(url, 'HEAD')
-            except socket.error:
-                print "Error establishing connection with url: {}".format(url)
+        # There are several types of error that can happen here, but for some reason I was only "handling"
+        # socket errors. It might be best to just let error raise out of this function and be handled by
+        # the function above...
+        # response = None
+        # failure_counter = 0
+        # max_failures = 3
+        # while not response:
+        #     try:
+        #         response = http_session.request(url, 'HEAD')
+        #     except socket.error:
+        #         max_failures += 1
+        #         print "Error establishing connection with host. Attempt: {}/{}, URL: {}".format(failure_counter, max_failures, url)
+        #         if failure_counter >= max_failures:
+        #             raise
+        response = http_session.request(url, 'HEAD')
         return cls(url, response[0])
 
 class DownloadManager(object):

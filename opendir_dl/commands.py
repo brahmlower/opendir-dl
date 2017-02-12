@@ -50,12 +50,6 @@ class BaseCommand(object):
     def run(self):
         pass # pragma: no cover
 
-# Version command
-
-class VersionCommand(BaseCommand):
-    def run(self):
-        print "opendir-dl 0.0.0"
-
 # Tagging related commands
 
 class TagListCommand(BaseCommand):

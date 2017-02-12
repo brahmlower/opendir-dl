@@ -110,6 +110,14 @@ class HttpHeadTest(unittest.TestCase):
         self.assertTrue(isinstance(head, opendir_dl.utils.HttpHead))
         self.assertTrue(isinstance(head.as_fileindex(), opendir_dl.utils.FileIndex))
 
+    # def test_socket_error(self):
+    #     url = "http://unlikely.address.local:12345/"
+    #     #with self.assertRaises(ValueError) as context:
+    #     opendir_dl.utils.HttpHead.from_url(url)
+    #     #expected_error = "No results found for index '{}' in database '{}'.".format(target_index, db_path)
+    #     #self.assertEqual(str(context.exception), expected_error)
+    #     self.assertTrue(False)
+
 class ParseUrlsTest(unittest.TestCase):
     """Tests opendir_dl.utils.url_to_domain
     """
@@ -227,3 +235,13 @@ class HttpGetTest(unittest.TestCase):
             response = opendir_dl.utils.http_get(server.url)
         self.assertEquals(response[0]["status"], '200')
 
+class DownloadManagerTest(TestWithConfig):
+    def test_nonexistant_index(self):
+        target_index = 404
+        db_path = "test_resources/test_sqlite3.db"
+        db_wrapper = opendir_dl.databasing.database_opener(self.config, db_path)
+        dl_man = opendir_dl.utils.DownloadManager(db_wrapper, target_index)
+        with self.assertRaises(ValueError) as context:
+            dl_man.download_id(target_index)
+        expected_error = "No results found for index '{}' in database '{}'.".format(target_index, db_path)
+        self.assertEqual(str(context.exception), expected_error)

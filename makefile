@@ -20,5 +20,5 @@ clean_db:
 	rm -f sqlite3.db
 	rm -f tests/sqlite3.db
 
-test:
+test: clean
 	nosetests

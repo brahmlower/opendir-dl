@@ -61,6 +61,15 @@ class DatabaseWrapperTest(unittest.TestCase):
         self.assertTrue(db.is_connected())
         self.assertEquals(db.query(opendir_dl.models.FileIndex).count(), 14)
 
+    def test_from_name_nonexistant_value(self):
+        db_name = "does_not_exist"
+        data_folder = "opendir-dl-test"
+        config = opendir_dl.Configuration(config_path = opendir_dl.get_config_path("config.yml", data_folder))
+        with self.assertRaises(ValueError) as context:
+            opendir_dl.databasing.DatabaseWrapper.from_name(config, db_name)
+        expected_error = "Cound not find database with the name '{}'.".format(db_name)
+        self.assertEqual(str(context.exception), expected_error)
+
     def test_from_404_url(self):
         expected_error = "HTTP GET request failed with error '404'. Expected '200'."
         with self.assertRaises(ValueError) as context:
@@ -90,7 +99,6 @@ class DatabaseOpenerTest(TestWithConfig):
         instance = opendir_dl.commands.DatabaseCreateCommand()
         instance.config = self.config
         instance.arguments["<name>"] = [db_name]
-        #instance.values = [db_name]
         instance.run()
         db_wrapper = opendir_dl.databasing.database_opener(self.config, db_name)
         self.assertTrue(db_wrapper.is_connected())
@@ -99,3 +107,9 @@ class DatabaseOpenerTest(TestWithConfig):
         provided_string = "abc_doesnt-match a database"
         with self.assertRaises(ValueError) as context:
             opendir_dl.databasing.database_opener(self.config, provided_string)
+
+    def test_invalid_configuration_object(self):
+        with self.assertRaises(ValueError) as context:
+            opendir_dl.databasing.database_opener(None)
+        expected_error = "Invalid configuration object. Must be of type 'opendir_dl.Configuration'"
+        self.assertEqual(str(context.exception), expected_error)

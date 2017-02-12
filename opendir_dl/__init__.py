@@ -20,9 +20,6 @@ class CommandMenu(object):
     def raise_no_default(self):
         raise ValueError('No default action was set for this command.')
 
-    def help_menu(self):
-        print self.keywords()
-
     def keywords(self):
         temp_keywords = self.commands.keys()
         return temp_keywords
@@ -198,7 +195,6 @@ def main(raw_input_list):
     # Define the available command menu
     command_menu = CommandMenu()
     command_menu.register(['help'], print_help(main.__doc__), verbose=False)
-    command_menu.register(['version'], commands.VersionCommand, verbose=False)
     command_menu.register(['index'], commands.IndexCommand, verbose=False)
     command_menu.register(['search'], commands.SearchCommand, verbose=False)
     command_menu.register(['download'], commands.DownloadCommand, verbose=False)
