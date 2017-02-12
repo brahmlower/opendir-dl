@@ -33,6 +33,7 @@ setup(
         "httplib2",
         "sqlalchemy",
         "prettytable",
+        "lxml", # This is needed to properly install BeautifulSoup4 
         "BeautifulSoup4"
     ],
 )
