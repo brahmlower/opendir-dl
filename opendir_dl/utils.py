@@ -297,7 +297,9 @@ class DownloadManager(object):
             save_head(self.db_wrapper.db_conn, head.as_fileindex())
 
     def download_id(self, pkid):
-        query = self.db_wrapper.query(FileIndex).get(int(pkid))
+        query = self.db_wrapper.query(FileIndex).get(pkid)
+        if not query:
+            raise ValueError("No results found for index '{}' in database '{}'.".format(pkid, self.db_wrapper.source))
         self.download_url(query.url)
 
     def start(self):
@@ -305,7 +307,7 @@ class DownloadManager(object):
             if is_url(item):
                 self.download_url(item)
             elif isinstance(item, int) or item.isdigit():
-                self.download_id(item)
+                self.download_id(int(item))
 
 def save_head(db_conn, head, commit=True):
     """Saves FileIndex object to database

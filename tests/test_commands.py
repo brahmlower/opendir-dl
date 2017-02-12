@@ -16,7 +16,7 @@ proper unit tests can be written.
 class BaseCommandTest(TestWithConfig):
     def test_flags(self):
         instance = opendir_dl.commands.BaseCommand()
-        instance.flags = ["example"]
+        instance.arguments["--example"] = True
         self.assertTrue(instance.has_flag("example"))
         self.assertFalse(instance.has_flag("not-there"))
 
@@ -29,26 +29,20 @@ class BaseCommandTest(TestWithConfig):
         instance.db_disconnect()
         self.assertFalse(instance.db_connected())
 
-class CommandHelpTest(TestWithConfig):
-    def test_no_args(self):
-        instance = opendir_dl.commands.HelpCommand()
-        instance.config = self.config
-        instance.run()
-
 class CommandIndexTest(TestWithConfig):
     def test_no_args(self):
         with ThreadedHTTPServer("localhost", 8000) as server:
             instance = opendir_dl.commands.IndexCommand()
             instance.config = self.config
-            instance.values = [server.url]
+            instance.arguments["<resource>"] = [server.url]
             instance.run()
 
     def test_quick_index(self):
         with ThreadedHTTPServer("localhost", 8000) as server:
             instance = opendir_dl.commands.IndexCommand()
             instance.config = self.config
-            instance.values = [server.url]
-            instance.flags = ["quick"]
+            instance.arguments["--quick"] = True
+            instance.arguments["<resource>"] = [server.url]
             instance.run()
 
     def test_index_404status(self):
@@ -56,55 +50,55 @@ class CommandIndexTest(TestWithConfig):
             url = "%s/test_resources/missing_file.txt" % server.url
             instance = opendir_dl.commands.IndexCommand()
             instance.config = self.config
-            instance.values = [url]
+            instance.arguments["<resource>"] = [url]
             instance.run()
 
 class CommandDatabaseListTest(TestWithConfig):
     def test_list(self):
-        instance = opendir_dl.commands.DatabaseCommand()
+        instance = opendir_dl.commands.DatabaseListCommand()
         instance.config = self.config
         instance.run()
 
 class CommandDatabaseDeleteTest(TestWithConfig):
     def test_create_and_delete_database(self):
         # Create a database to be deleted
-        instance1 = opendir_dl.commands.DatabaseCommand()
+        instance1 = opendir_dl.commands.DatabaseCreateCommand()
         instance1.config = self.config
-        instance1.values = ["test1"]
+        instance1.arguments["<name>"] = ["test1"]
         instance1.run()
         # Delete the database we just made
-        instance2 = opendir_dl.commands.DatabaseCommand()
+        instance2 = opendir_dl.commands.DatabaseDeleteCommand()
         instance2.config = self.config
-        instance2.options["delete"] = "test1"
+        instance2.arguments["<name>"] = ["test1"]
         instance2.run()
 
     def test_attempt_delete_default(self):
-        instance = opendir_dl.commands.DatabaseCommand()
+        instance = opendir_dl.commands.DatabaseDeleteCommand()
         instance.config = self.config
-        instance.options["delete"] = "default"
+        instance.arguments["<name>"] = ["default"]
         with self.assertRaises(ValueError) as context:
             instance.run()
 
 class CommandDatabaseCreateTest(TestWithConfig):
     def test_attempt_bad_type(self):
-        instance = opendir_dl.commands.DatabaseCommand()
+        instance = opendir_dl.commands.DatabaseCreateCommand()
         instance.config = self.config
-        instance.options["type"] = "notavalidtype"
-        instance.options["resource"] = "default"
-        instance.values = ["test2"]
+        instance.arguments["--type"] = "notavalidtype"
+        instance.arguments["--resource"] = "default"
+        instance.arguments["<name>"] = ["test2"]
         with self.assertRaises(ValueError) as context:
             instance.run()
-        expected_error = "Database type must be one of: url, filesystem, alias."
+        expected_error = "Database type must be one of: 'url', 'filesystem', 'alias'. Got type '{}'.".format(instance.arguments["--type"])
         self.assertEqual(str(context.exception), expected_error)
 
     def test_incomplete_alias(self):
         resource = "nonreal_database"
         expected_error = "Cannot create alias to database- no database named '%s'." % resource
-        instance = opendir_dl.commands.DatabaseCommand()
+        instance = opendir_dl.commands.DatabaseCreateCommand()
         instance.config = self.config
-        instance.options["type"] = "alias"
-        instance.options["resource"] = resource
-        instance.values = ["alias_name"]
+        instance.arguments["--type"] = "alias"
+        instance.arguments["--resource"] = resource
+        instance.arguments["<name>"] = ["alias_name"]
         with self.assertRaises(ValueError) as context:
             instance.run()
         self.assertEqual(str(context.exception), expected_error)
@@ -113,7 +107,7 @@ class CommandSearchTest(TestWithConfig):
     def test_no_args(self):
         instance = opendir_dl.commands.SearchCommand()
         instance.config = self.config
-        instance.options["db"] = "test_resources/test_sqlite3.db"
+        instance.arguments["--db"] = "test_resources/test_sqlite3.db"
         instance.run()
 
 class CommandDownloadTest(TestWithConfig):
@@ -131,7 +125,7 @@ class CommandDownloadTest(TestWithConfig):
         with ThreadedHTTPServer("localhost", 8000) as server:
             instance = opendir_dl.commands.DownloadCommand()
             instance.config = self.config
-            instance.values = ["%stest_resources/test_sqlite3.db" % server.url]
+            instance.arguments["<index>"] = ["{}test_resources/test_sqlite3.db".format(server.url)]
             instance.run()
             # Make sure the file was actually downloaded
             self.assert_file_exists("test_sqlite3.db")
@@ -144,8 +138,8 @@ class CommandDownloadTest(TestWithConfig):
             # Download the file
             instance = opendir_dl.commands.DownloadCommand()
             instance.config = self.config
-            instance.values = ["%stest_resources/example_file.txt" % server.url]
-            instance.flags = ['no-index']
+            instance.arguments["<index>"] = ["{}test_resources/example_file.txt".format(server.url)]
+            instance.arguments["--no-index"] = True
             instance.run()
             # Make sure the file was actually downloaded
             self.assert_file_exists("example_file.txt")
@@ -163,8 +157,8 @@ class CommandDownloadTest(TestWithConfig):
             # This references path test_resources/test_404_head.txt which does not exist (causing status 404)
             instance = opendir_dl.commands.DownloadCommand()
             instance.config = self.config
-            instance.values = [13]
-            instance.options["db"] = "%stest_resources/test_sqlite3.db" % server.url
+            instance.arguments["--db"] = "{}test_resources/test_sqlite3.db".format(server.url)
+            instance.arguments["<index>"] = [13]
             instance.run()
             # Make sure the file was not created
             self.assertFalse(os.path.exists("test_404_head.txt"))

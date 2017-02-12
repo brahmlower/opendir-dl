@@ -9,10 +9,10 @@ from sqlalchemy.ext.declarative import declarative_base
 
 MODELBASE = declarative_base()
 
-association_table = Table('association', MODELBASE.metadata,
-    Column('left_pkid', Integer, ForeignKey('fileindex.pkid')),
-    Column('right_pkid', Integer, ForeignKey('tags.pkid'))
-)
+# The association table relates file indexes with tags
+ASSOCIATION_TABLE = Table('associations', MODELBASE.metadata,
+                          Column('left_pkid', Integer, ForeignKey('fileindex.pkid')),
+                          Column('right_pkid', Integer, ForeignKey('tags.pkid')))
 
 class FileIndex(MODELBASE):
     """This represents a remote file
@@ -26,10 +26,12 @@ class FileIndex(MODELBASE):
     content_type = Column(String)
     last_modified = Column(DateTime)
     content_length = Column(Integer)
-    tags = relationship("Tags", secondary=association_table, back_populates="indexes")
+    tags = relationship("Tags", secondary=ASSOCIATION_TABLE, back_populates="indexes")
 
 class Tags(MODELBASE):
+    """This represents a tag
+    """
     __tablename__ = "tags"
     pkid = Column(Integer, primary_key=True)
     name = Column(String)
-    indexes = relationship("FileIndex", secondary=association_table, back_populates="tags")
+    indexes = relationship("FileIndex", secondary=ASSOCIATION_TABLE, back_populates="tags")

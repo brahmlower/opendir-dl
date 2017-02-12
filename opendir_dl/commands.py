@@ -1,5 +1,3 @@
-import os
-import sys
 import sqlalchemy
 from prettytable import PrettyTable
 from opendir_dl.databasing import database_opener
@@ -7,34 +5,28 @@ from opendir_dl.utils import SearchEngine
 from opendir_dl.utils import PageCrawler
 from opendir_dl.utils import DownloadManager
 from opendir_dl.utils import create_table
-from models import Tags
-from models import FileIndex
+from opendir_dl.models import Tags
+from opendir_dl.models import FileIndex
 
 class BaseCommand(object):
     def __init__(self):
         self.config = None
-        self.arguments = None
+        self.arguments = {}
         self.db_wrapper = None
 
     def has_flag(self, flag_name):
         # This pretty much just wraps the self.arguments dict, but it's useful
         # in that we don't have to deail with the flag tracking implementation at all
-        if flag_name[0:2] != "--":
-            return self.arguments.get("--{}".format(flag_name)) == True
-        else:
-            return self.arguments.get(flag_name) == True
+        return self.arguments.get("--{}".format(flag_name)) is True
 
     def get_option(self, option_name):
-        if option_name[0:2] != "--":
-            return self.arguments.get("--{}".format(option_name))
-        else:
-            return self.arguments.get(option_name)
+        return self.arguments.get("--{}".format(option_name))
 
     def get_argument(self, argument_name):
         return self.arguments.get("<{}>".format(argument_name))
 
     def db_connected(self):
-        return self.db_wrapper != None
+        return self.db_wrapper is not None
 
     def db_connect(self):
         if self.db_connected():
@@ -44,8 +36,8 @@ class BaseCommand(object):
 
         # Get the target database value from the arguments, or use the default
         resource = "default"
-        if self.arguments != None and self.arguments.get("db") != None:
-            resource = self.arguments.get("db")
+        if self.arguments is not None and self.get_option("db") is not None:
+            resource = self.get_option("db")
         # Opend the referenced database
         self.db_wrapper = database_opener(self.config, resource)
 
@@ -146,6 +138,7 @@ class DownloadCommand(BaseCommand):
             self.db_connect()
         # Make the download manager, configure it, start it
         values = self.get_argument("index")
+        print values
         dlman = DownloadManager(self.db_wrapper, values)
         dlman.no_index = self.has_flag("no-index")
         dlman.start()
@@ -258,9 +251,7 @@ class SearchCommand(BaseCommand):
         # Prepare the database connection
         if not self.db_connected():
             self.db_connect()
-        #if "rawsql" in self.options.keys():
         if self.has_flag("rawsql"):
-            #rawsql = sqlalchemy.text(self.options['rawsql'])
             rawsql = sqlalchemy.text(' '.join(self.get_argument("terms")))
             results = self.db_wrapper.db_conn.execute(rawsql)
             print create_table(results)
@@ -271,62 +262,6 @@ class SearchCommand(BaseCommand):
             results = search.query()
             columns = ["ID", "Name", "Last Indexed", "Tags"]
             print create_table(results, columns)
-
-class HelpCommand(BaseCommand):
-    """Help:
-        Description:
-                Displays this help menu.
-
-        Flags:
-                <none>
-
-        Options:
-                <none>
-
-        Examples:
-                <none>
-    """
-    valid_options = {}
-    valid_flags = []
-
-    def read_helpfile(self):
-        current_directory = os.path.abspath(os.path.join(__file__, os.pardir))
-        helpfile_path = os.path.join(current_directory, "help.txt")
-        with open(helpfile_path, 'r') as rfile:
-            return rfile.read()
-
-    def run(self):
-        print "Usage:\n\topendir-dl [command] (flags) (options) [values]"
-        print "\nCommands:"
-        print "\tindex           Index a url and it's child directories."
-        print "\tsearch          Search a database containing indexed URL."
-        print "\tdownload        Download one or more URLs."
-        print "\tdatabase        Interact with available database profiles."
-        print "\thelp            Display this message. (default)\n"
-        command_dict = {
-            'index': IndexCommand,
-            'search': SearchCommand,
-            'download': DownloadCommand,
-            'database': DatabaseCommand,
-            'help': HelpCommand}
-        if sys.flags.optimize > 0:
-            print ("You've run python with optimization. The help feature"
-                  " relies on docstrings which may be removed by pythons"
-                  " optimizations.")
-        if len(self.values) > 0:
-            # Here we've requested help for specific commands
-            for i in self.values:
-                if command_dict.get(i, False):
-                    print command_dict[i].__doc__
-                else:
-                    print "No such command '{}'".format(i)
-        else:
-            # No specific command was requests, print them all
-            for i in command_dict:
-                if command_dict[i].__doc__:
-                    print command_dict[i].__doc__
-
-
 
 # Database commands
 
@@ -343,7 +278,6 @@ class DatabaseListCommand(BaseCommand):
 class DatabaseCreateCommand(BaseCommand):
     def run(self):
         disallowed_db_names = ['default']
-        #db_name = self.values[0]
         db_name = self.get_argument("name")[0]
         # Validate the name for the new database
         if db_name in disallowed_db_names:
@@ -357,21 +291,18 @@ class DatabaseCreateCommand(BaseCommand):
             raise ValueError(message)
         # Set the database type and resource
         if self.get_option('type') and not self.get_option('resource'):
-        #if 'type' in self.options.keys() and 'resource' not in self.options.keys():
             # If we're specifying the type, we *must* specify the resource
             message = "Must provide resource when specifying a database type."
             raise ValueError(message)
         db_type = self.get_option('type')
         if not db_type:
-            db_type == 'filesystem'
-        #db_type = self.options.get('type', 'filesystem')
+            db_type = 'filesystem'
         if db_type not in ['filesystem', 'url', 'alias']:
-            message = "Database type must be one of: url, filesystem, alias."
+            message = "Database type must be one of: 'url', 'filesystem', 'alias'. Got type '{}'.".format(db_type)
             raise ValueError(message)
         db_resource = self.get_option('resource')
         if not db_resource:
             db_resource = "{}.db".format(db_name)
-        #db_resource = self.options.get('resource', db_name + ".db")
         if db_type == "alias" and db_resource not in self.config.databases.keys():
             message = "Cannot create alias to database- no database named '%s'." % db_resource
             raise ValueError(message)
@@ -382,16 +313,15 @@ class DatabaseCreateCommand(BaseCommand):
 class DatabaseDeleteCommand(BaseCommand):
     def run(self):
         # TODO: This won't delete the actual database file
-        #target = self.options['delete']
         target = self.get_argument("name")
         for i in target:
-            if target == "default":
+            if i == "default":
                 message = "Invalid database name- cannot delete default database."
                 raise ValueError(message)
-            if target not in self.config.databases.keys():
-                message = "Invalid database name- no database exists with that name."
+            if i not in self.config.databases.keys():
+                message = "Invalid database name- no database exists with name '{}'.".format(i)
                 raise ValueError(message)
-            self.config.databases.pop(target, None)
+            self.config.databases.pop(i, None)
         self.config.save()
 
 # class DatabaseCommand(BaseCommand):

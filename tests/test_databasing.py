@@ -87,9 +87,10 @@ class DatabaseOpenerTest(TestWithConfig):
 
     def test_provided_named_db(self):
         db_name = "named_database_test"
-        instance = opendir_dl.commands.DatabaseCommand()
+        instance = opendir_dl.commands.DatabaseCreateCommand()
         instance.config = self.config
-        instance.values = [db_name]
+        instance.arguments["<name>"] = [db_name]
+        #instance.values = [db_name]
         instance.run()
         db_wrapper = opendir_dl.databasing.database_opener(self.config, db_name)
         self.assertTrue(db_wrapper.is_connected())

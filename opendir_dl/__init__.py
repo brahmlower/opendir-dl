@@ -1,9 +1,11 @@
 import os
 import os.path
+import inspect
 import errno
 import yaml
 import appdirs
 from docopt import docopt
+from docopt import DocoptExit
 from opendir_dl import commands
 
 class CommandMenu(object):
@@ -26,13 +28,13 @@ class CommandMenu(object):
         return temp_keywords
 
     def register(self, command, obj=None, verbose=True):
-        if isinstance(command, list) and obj != None:
+        if isinstance(command, list) and obj is not None:
             # Register the menu command via the string registration method
             self.register_list(command, obj, verbose)
-        elif isinstance(command, str) and obj != None:
+        elif isinstance(command, str) and obj is not None:
             # Register the menu command via the list registration method
             self.register_string(command, obj, verbose)
-        elif obj == None:
+        elif obj is None:
             # The register function is being used as a decorator. Define the
             # decoration method, then return it. The decoration method simply
             # calls this registration method again, with the provided command
@@ -157,37 +159,45 @@ def walk_menu_path(command_menu, arguments):
                 command_menu = current_menu.commands[i]
     return command_list
 
+def print_help(content):
+    def decorated_print_help():
+        print content
+    return decorated_print_help
+
+
 def main(raw_input_list):
-    """
+    """OpenDir-DL
+
     Usage:
-      opendir-dl help [options] [command]...
-      opendir-dl version [options]
-      opendir-dl index [options] [--quick] [--depth=<int>] <resource>...
-      opendir-dl search [options] [--inclusive] [--rawsql] <terms>...
-      opendir-dl download [options] <index>...
-      opendir-dl tag list [options]
-      opendir-dl tag create [options] <name>...
-      opendir-dl tag delete [options] <name>...
-      opendir-dl tag update [options] <name> <index>
-      opendir-dl database list [options]
-      opendir-dl database create [options] <name> [--type=<type>] [--resource=<resource>]
-      opendir-dl database delete [options] <name>...
+        opendir-dl help [options] [command]...
+        opendir-dl version [options]
+        opendir-dl index [options] [--quick] [--depth=<int>] <resource>...
+        opendir-dl search [options] [--inclusive] [--rawsql] <terms>...
+        opendir-dl download [options] <index>...
+        opendir-dl tag list [options]
+        opendir-dl tag create [options] <name>...
+        opendir-dl tag delete [options] <name>...
+        opendir-dl tag update [options] <name> <index>
+        opendir-dl database list [options]
+        opendir-dl database create [options] <name> [--type=<type>] [--resource=<resource>]
+        opendir-dl database delete [options] <name>...
 
     Options:
-      --debug       Run the command in debug mode. This changes the configuration
-                    path to use, preventing database polution.
-      -v, --verbose  How loud should we be? By default this can be a noisy
-                    application.
-      -d <db>, --db <db>  This specifies the database to be used while executing
-                    the command. The provided value can be a URL, a file path, or a
-                    database profile. URLs and file paths must point to a valid
-                    opendir-dl sqlite3 database file. Valid database profiles's
-                    are explained in the Database section.
-
+        -h, --help          Shows this message
+        -d, --debug         Run the command in debug mode. This changes the
+                            configuration path to use, preventing database polution.
+        -v, --verbose       How loud should we be? By default this can be a noisy
+                            application.
+        -D <db>, --db <db>  This specifies the database to be used while executing
+                            the command. The provided value can be a URL, a file
+                            path, or a database profile. URLs and file paths must
+                            point to a valid opendir-dl sqlite3 database file. Valid
+                            database profiles's are explained in the Database section.
     """
+
     # Define the available command menu
     command_menu = CommandMenu()
-    command_menu.register(['help'], commands.HelpCommand, verbose=False)
+    command_menu.register(['help'], print_help(main.__doc__), verbose=False)
     command_menu.register(['version'], commands.VersionCommand, verbose=False)
     command_menu.register(['index'], commands.IndexCommand, verbose=False)
     command_menu.register(['search'], commands.SearchCommand, verbose=False)
@@ -215,7 +225,10 @@ def main(raw_input_list):
 
     # Get the reference to the command class, instantiate it, and then run it
     target_command_ref = command_menu.get(command_path)
-    command_instance = target_command_ref()
-    command_instance.config = config
-    command_instance.arguments = arguments
-    command_instance.run()
+    if inspect.isclass(target_command_ref) and issubclass(target_command_ref, commands.BaseCommand):
+        command_instance = target_command_ref()
+        command_instance.config = config
+        command_instance.arguments = arguments
+        command_instance.run()
+    else:
+        target_command_ref()
