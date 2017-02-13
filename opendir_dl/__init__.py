@@ -161,7 +161,6 @@ def print_help(content):
         print content
     return decorated_print_help
 
-
 def main(raw_input_list):
     """OpenDir-DL
 
@@ -172,8 +171,8 @@ def main(raw_input_list):
         opendir-dl search [options] [--inclusive] [--rawsql] <terms>...
         opendir-dl download [options] <index>...
         opendir-dl tag list [options]
-        opendir-dl tag create [options] <name>...
-        opendir-dl tag delete [options] <name>...
+        opendir-dl tag create [options] <name>
+        opendir-dl tag delete [options] <name>
         opendir-dl tag update [options] <name> <index>
         opendir-dl database list [options]
         opendir-dl database create [options] <name> [--type=<type>] [--resource=<resource>]
@@ -192,28 +191,28 @@ def main(raw_input_list):
                             database profiles's are explained in the Database section.
     """
 
+    # Parse the user input
+    arguments = docopt(main.__doc__, help=False, argv=raw_input_list)
+    verbose = arguments.get("--verbose")
+    if verbose:
+        print arguments
+
     # Define the available command menu
     command_menu = CommandMenu()
-    command_menu.register(['help'], print_help(main.__doc__), verbose=False)
-    command_menu.register(['index'], commands.IndexCommand, verbose=False)
-    command_menu.register(['search'], commands.SearchCommand, verbose=False)
-    command_menu.register(['download'], commands.DownloadCommand, verbose=False)
-    command_menu.register(['tag', 'list'], commands.TagListCommand, verbose=False)
-    command_menu.register(['tag', 'create'], commands.TagCreateCommand, verbose=False)
-    command_menu.register(['tag', 'delete'], commands.TagDeleteCommand, verbose=False)
-    command_menu.register(['tag', 'update'], commands.TagUpdateCommand, verbose=False)
-    command_menu.register(['database', 'list'], commands.DatabaseListCommand, verbose=False)
-    command_menu.register(['database', 'create'], commands.DatabaseCreateCommand, verbose=False)
-    command_menu.register(['database', 'delete'], commands.DatabaseDeleteCommand, verbose=False)
-
-    # Parse the user input
-    arguments = docopt(main.__doc__, argv=raw_input_list)
-    if arguments.get("--debug"):
-        print arguments
+    command_menu.register(['help'], print_help(main.__doc__), verbose=verbose)
+    command_menu.register(['index'], commands.IndexCommand, verbose=verbose)
+    command_menu.register(['search'], commands.SearchCommand, verbose=verbose)
+    command_menu.register(['download'], commands.DownloadCommand, verbose=verbose)
+    command_menu.register(['tag', 'list'], commands.TagListCommand, verbose=verbose)
+    command_menu.register(['tag', 'create'], commands.TagCreateCommand, verbose=verbose)
+    command_menu.register(['tag', 'delete'], commands.TagDeleteCommand, verbose=verbose)
+    command_menu.register(['tag', 'update'], commands.TagUpdateCommand, verbose=verbose)
+    command_menu.register(['database', 'list'], commands.DatabaseListCommand, verbose=verbose)
+    command_menu.register(['database', 'create'], commands.DatabaseCreateCommand, verbose=verbose)
+    command_menu.register(['database', 'delete'], commands.DatabaseDeleteCommand, verbose=verbose)
     command_path = walk_menu_path(command_menu, arguments)
 
-    # Build the configuration. If 'debug' is provided as a flag, point
-    # the path to a debug data directory.
+    # Build the configuration. If 'debug' is provided as a flag, point the path to a debug data directory.
     config_filepath = get_config_path("config.yml")
     if arguments.get('--debug'):
         config_filepath = get_config_path("config.yml", "opendir-dl-debug")

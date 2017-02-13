@@ -5,14 +5,17 @@ from opendir_dl.utils import SearchEngine
 from opendir_dl.utils import PageCrawler
 from opendir_dl.utils import DownloadManager
 from opendir_dl.utils import create_table
+from opendir_dl.utils import format_tags
 from opendir_dl.models import Tags
 from opendir_dl.models import FileIndex
 
 class BaseCommand(object):
     def __init__(self):
         self.config = None
-        self.arguments = {}
+        self.arguments = None
         self.db_wrapper = None
+        if not self.arguments:
+            self.arguments = {}
 
     def has_flag(self, flag_name):
         # This pretty much just wraps the self.arguments dict, but it's useful
@@ -50,43 +53,59 @@ class BaseCommand(object):
     def run(self):
         pass # pragma: no cover
 
-# Tagging related commands
-
 class TagListCommand(BaseCommand):
     def run(self):
         if not self.db_connected():
             self.db_connect()
         # Just list the tags we have
         results = self.db_wrapper.db_conn.query(Tags).all()
+        cleaned_results = []
         for i in results:
-            print i.name, len(i.indexes)
+            cleaned_results.append([i.name, len(i.indexes)])
+        columns = ["Tag Name", "Num References"]
+        print create_table(cleaned_results, columns)
 
 class TagCreateCommand(BaseCommand):
     def run(self):
         if not self.db_connected():
             self.db_connect()
-        for i in self.get_argument("name"):
-            new_tag = Tags(name=i)
-            self.db_wrapper.db_conn.add(new_tag)
+        new_tag_name = self.get_argument("name")[0]
+        tag = self.db_wrapper.db_conn.query(Tags).filter(Tags.name.like(new_tag_name)).all()
+        if len(tag) > 0:
+            # This means the tag already exists. Exit
+            raise ValueError("Tag with name '{}' already exists!".format(new_tag_name))
+        new_tag = Tags(name=new_tag_name)
+        self.db_wrapper.db_conn.add(new_tag)
         self.db_wrapper.db_conn.commit()
 
 class TagDeleteCommand(BaseCommand):
     def run(self):
         if not self.db_connected():
             self.db_connect()
-        raise ValueError("Not implemented yet! +1")
+        tag_name = self.get_argument("name")[0]
+        try:
+            tag = self.db_wrapper.db_conn.query(Tags).filter(Tags.name.like(tag_name)).one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            raise ValueError("Tag with name '{}' does not exist.".format(tag_name))
+        self.db_wrapper.db_conn.delete(tag)
+        self.db_wrapper.db_conn.commit()
 
 class TagUpdateCommand(BaseCommand):
     def run(self):
         if not self.db_connected():
             self.db_connect()
-        provided_index = self.get_argument("index")
-        provided_tag_name = self.get_argument("name")
-        # Get the tag
-        tag = self.db_wrapper.db_conn.query(Tags).filter(Tags.name.like(provided_tag_name)).one()
-        # Get the file index
-        #index_pkid = self.options['update']
+        # Get the entry for the file referenced by the provided index
+        provided_index = self.get_argument("index")[0]
         file_index = self.db_wrapper.db_conn.query(FileIndex).get(provided_index)
+        if not file_index:
+            raise ValueError("File index with ID '{}' could not be found.".format(provided_index))
+        # Get the tag referenced by the tag name
+        provided_tag_name = self.get_argument("name")[0]
+        try:
+            tag = self.db_wrapper.db_conn.query(Tags).filter(Tags.name.like(provided_tag_name)).one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            raise ValueError("Tag with name '{}' does not exist.".format(provided_tag_name))
+        # Add the tag reference to the file entry
         file_index.tags.append(tag)
         self.db_wrapper.db_conn.commit()
 
@@ -254,8 +273,11 @@ class SearchCommand(BaseCommand):
             search = SearchEngine(self.db_wrapper.db_conn, terms)
             search.exclusive = self.has_flag("inclusive")
             results = search.query()
+            cleaned_results = []
+            for i in results:
+                cleaned_results.append([i.pkid, i.name, i.last_indexed, format_tags(i.tags)])
             columns = ["ID", "Name", "Last Indexed", "Tags"]
-            print create_table(results, columns)
+            print create_table(cleaned_results, columns)
 
 # Database commands
 

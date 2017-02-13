@@ -44,24 +44,24 @@ class UrlToFilenameTest(unittest.TestCase):
         filename = "filename.txt"
         url = "http://localhost/%s" % filename
         parsed_filename = opendir_dl.utils.url_to_filename(url)
-        self.assertEquals(filename, parsed_filename)
+        self.assertEqual(filename, parsed_filename)
 
     def test_urlencoded_name(self):
         filename = "file%20name.txt"
         url = "http://localhost/%s" % filename
         parsed_filename = opendir_dl.utils.url_to_filename(url)
-        self.assertEquals("file name.txt", parsed_filename)
+        self.assertEqual("file name.txt", parsed_filename)
 
     def test_implicit_filename(self):
         url = "http://localhost/"
         parsed_filename = opendir_dl.utils.url_to_filename(url)
-        self.assertEquals("index.html", parsed_filename)
+        self.assertEqual("index.html", parsed_filename)
 
     def test_parsed_url(self):
         url = "http://localhost/path/filename.txt"
         parsed_url = urlparse(url)
         parsed_filename = opendir_dl.utils.url_to_filename(parsed_url)
-        self.assertEquals("filename.txt", parsed_filename)
+        self.assertEqual("filename.txt", parsed_filename)
 
 class HttpHeadTest(unittest.TestCase):
     """Tests opendir_dl.utils.HttpHead
@@ -73,10 +73,10 @@ class HttpHeadTest(unittest.TestCase):
                      "last-modified": "Mon, 16 Jan 2006 16:30:19 GMT"}
         head = opendir_dl.utils.HttpHead(url, head_dict)
         self.assertTrue(isinstance(head, opendir_dl.utils.HttpHead))
-        self.assertEquals(head.url, url)
-        self.assertEquals(head.status, int(head_dict['status']))
-        self.assertEquals(head.content_type, head_dict['content-type'])
-        self.assertEquals(head.content_length, int(head_dict['content-length']))
+        self.assertEqual(head.url, url)
+        self.assertEqual(head.status, int(head_dict['status']))
+        self.assertEqual(head.content_type, head_dict['content-type'])
+        self.assertEqual(head.content_length, int(head_dict['content-length']))
         self.assertTrue(isinstance(head.last_modified, datetime))
         self.assertTrue(isinstance(head.last_indexed, datetime))
 
@@ -85,11 +85,11 @@ class HttpHeadTest(unittest.TestCase):
         head_dict = {}
         head = opendir_dl.utils.HttpHead(url, head_dict)
         self.assertTrue(isinstance(head, opendir_dl.utils.HttpHead))
-        self.assertEquals(head.url, url)
-        self.assertEquals(head.status, 0)
-        self.assertEquals(head.content_type, '')
-        self.assertEquals(head.content_length, 0)
-        self.assertEquals(head.last_modified, None)
+        self.assertEqual(head.url, url)
+        self.assertEqual(head.status, 0)
+        self.assertEqual(head.content_type, '')
+        self.assertEqual(head.content_length, 0)
+        self.assertEqual(head.last_modified, None)
         self.assertTrue(isinstance(head.last_indexed, datetime))
 
     def test_html_content_type(self):
@@ -126,22 +126,22 @@ class ParseUrlsTest(unittest.TestCase):
         html = ""
         url_list = opendir_dl.utils.parse_urls(url, html)
         self.assertTrue(isinstance(url_list, list))
-        self.assertEquals(len(url_list), 0)
+        self.assertEqual(len(url_list), 0)
 
     def test_single_link(self):
         url = "http://localhost/"
         html = "<html><a href=\"link\">link</a></html>"
         url_list = opendir_dl.utils.parse_urls(url, html)
         self.assertTrue(isinstance(url_list, list))
-        self.assertEquals(len(url_list), 1)
-        self.assertEquals(url_list[0], "http://localhost/link")
+        self.assertEqual(len(url_list), 1)
+        self.assertEqual(url_list[0], "http://localhost/link")
 
     def test_no_clean_links(self):
         url = "http://localhost/"
         html = "<html><a href=\"#\">link</a></html>"
         url_list = opendir_dl.utils.parse_urls(url, html)
         self.assertTrue(isinstance(url_list, list))
-        self.assertEquals(len(url_list), 0)
+        self.assertEqual(len(url_list), 0)
 
 class BadAnchorTest(unittest.TestCase):
     def test_good_anchor(self):
@@ -175,7 +175,7 @@ class PageCrawlerTest(TestWithConfig):
     #     index_items = ["http://localhost/", 10, "3"]
     #     crawler = opendir_dl.utils.PageCrawler(db, index_items)
         
-    #     self.assertEquals(len(crawler.url_triage_bucket), 3)
+    #     self.assertEqual(len(crawler.url_triage_bucket), 3)
     #     # TODO: This will need to check that the URL for items 10 and 3 match those items in the database
     #     for i in crawler.url_triage_bucket:
     #         self.assertTrue(opendir_dl.utils.is_url(i))
@@ -185,7 +185,7 @@ class PageCrawlerTest(TestWithConfig):
         db.connect()
         crawler = opendir_dl.utils.PageCrawler(db, ["http://localhost/"])
         self.assertFalse(crawler.quick)
-        self.assertEquals(crawler.__dict__['_triage_method'], crawler.triage_standard)
+        self.assertEqual(crawler.__dict__['_triage_method'], crawler.triage_standard)
 
     def test_change_triage_method(self):
         db = opendir_dl.databasing.DatabaseWrapper('')
@@ -193,10 +193,10 @@ class PageCrawlerTest(TestWithConfig):
         crawler = opendir_dl.utils.PageCrawler(db, ["http://localhost/"])
         crawler.quick = True
         self.assertTrue(crawler.quick)
-        self.assertEquals(crawler.__dict__['_triage_method'], crawler.triage_quick)
+        self.assertEqual(crawler.__dict__['_triage_method'], crawler.triage_quick)
         crawler.quick = False
         self.assertFalse(crawler.quick)
-        self.assertEquals(crawler.__dict__['_triage_method'], crawler.triage_standard)
+        self.assertEqual(crawler.__dict__['_triage_method'], crawler.triage_standard)
 
 class SearchEngineTest(unittest.TestCase):
     def test_query(self):
@@ -207,21 +207,21 @@ class SearchEngineTest(unittest.TestCase):
         search = opendir_dl.utils.SearchEngine(db, ['example'])
         self.assertTrue(len(search.filters), 1)
         results = search.query()
-        self.assertEquals(len(results), 1)
+        self.assertEqual(len(results), 1)
 
     def test_exclusivity(self):
         search = opendir_dl.utils.SearchEngine()
         # Tests that the exclusive is True by default
         self.assertTrue(search.exclusive)
-        self.assertEquals(search.__dict__['_exclusivity'], sqlalchemy.and_)
+        self.assertEqual(search.__dict__['_exclusivity'], sqlalchemy.and_)
         # Sets exclusive to False and tests everything was tested as expected
         search.exclusive = False
         self.assertFalse(search.exclusive)
-        self.assertEquals(search.__dict__['_exclusivity'], sqlalchemy.or_)
+        self.assertEqual(search.__dict__['_exclusivity'], sqlalchemy.or_)
         # Sets exclusive back to True and tests everything was set back to normal
         search.exclusive = True
         self.assertTrue(search.exclusive)
-        self.assertEquals(search.__dict__['_exclusivity'], sqlalchemy.and_)
+        self.assertEqual(search.__dict__['_exclusivity'], sqlalchemy.and_)
 
     def test_db_missing(self):
         search = opendir_dl.utils.SearchEngine()
@@ -233,7 +233,7 @@ class HttpGetTest(unittest.TestCase):
     def test_localhost(self):
         with ThreadedHTTPServer("localhost", 8000) as server:
             response = opendir_dl.utils.http_get(server.url)
-        self.assertEquals(response[0]["status"], '200')
+        self.assertEqual(response[0]["status"], '200')
 
 class DownloadManagerTest(TestWithConfig):
     def test_nonexistant_index(self):
@@ -245,3 +245,19 @@ class DownloadManagerTest(TestWithConfig):
             dl_man.download_id(target_index)
         expected_error = "No results found for index '{}' in database '{}'.".format(target_index, db_path)
         self.assertEqual(str(context.exception), expected_error)
+
+class FormatTagListTest(unittest.TestCase):
+    def test_empty_list(self):
+        result = opendir_dl.utils.format_tags([])
+        self.assertEqual(result, "")
+
+    def test_single_item(self):
+        tag = opendir_dl.models.Tags(name="test")
+        result = opendir_dl.utils.format_tags([tag])
+        self.assertEqual(result, tag.name)
+
+    def test_multiple_items(self):
+        tag1 = opendir_dl.models.Tags(name="test1")
+        tag2 = opendir_dl.models.Tags(name="test2")
+        result = opendir_dl.utils.format_tags([tag1, tag2])
+        self.assertEqual(result, "{} {}".format(tag1.name, tag2.name))

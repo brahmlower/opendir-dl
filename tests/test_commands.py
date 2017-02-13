@@ -59,43 +59,107 @@ class BaseCommandTest(TestWithConfig):
             instance.db_disconnect()
 
 class CommandTagListTest(TestWithConfig):
-    # TODO: Implement test
-    def test(self):
-        self.assertTrue(False)
-
     def test_empty_tag_list(self):
         instance = opendir_dl.commands.TagListCommand()
         instance.config = self.config
+        instance.arguments["--db"] = self.database_path
         instance.run()
 
 class CommandTagCreateTest(TestWithConfig):
-    # TODO: Implement test
-    def test(self):
-        self.assertTrue(False)
-
     def test_create_single_tag(self):
         instance = opendir_dl.commands.TagCreateCommand()
         instance.config = self.config
-        instance.arguments["--db"] = "test_resources/test_sqlite3.db"
+        instance.arguments["--db"] = self.database_path
         instance.arguments["<name>"] = ["tag1"]
         instance.run()
 
-    def test_create_single_tag(self):
+    def test_create_multiple_tags(self):
         instance = opendir_dl.commands.TagCreateCommand()
         instance.config = self.config
-        instance.arguments["--db"] = "test_resources/test_sqlite3.db"
+        instance.arguments["--db"] = self.database_path
         instance.arguments["<name>"] = ["tag1", "tag2"]
         instance.run()
 
+    def test_create_existing_tag(self):
+        tag_name = "example_tag"
+        instance = opendir_dl.commands.TagCreateCommand()
+        instance.config = self.config
+        instance.arguments["--db"] = self.database_path
+        instance.arguments["<name>"] = [tag_name]
+        with self.assertRaises(ValueError) as context:
+            instance.run()
+        expected_error = "Tag with name '{}' already exists!".format(tag_name)
+        self.assertEqual(str(context.exception), expected_error)
+
 class CommandTagDeleteTest(TestWithConfig):
-    # TODO: Implement test
-    def test(self):
-        self.assertTrue(False)
+    def test_delete_existing_tag(self):
+        tag_name = "tag1"
+        db_wrapper = opendir_dl.databasing.database_opener(self.config, self.database_path)
+        # Make sure we're starting this test with no entries with the name tag1
+        tag_query_results = db_wrapper.query(opendir_dl.models.Tags).filter(opendir_dl.models.Tags.name.like(tag_name)).all()
+        self.assertEqual(len(tag_query_results), 0)
+
+        instance1 = opendir_dl.commands.TagCreateCommand()
+        instance1.config = self.config
+        instance1.arguments["--db"] = self.database_path
+        instance1.arguments["<name>"] = [tag_name]
+        instance1.run()
+        # Now make sure that there is an entry for a tag with the specified name
+        tag_query_results = db_wrapper.query(opendir_dl.models.Tags).filter(opendir_dl.models.Tags.name.like(tag_name)).all()
+        self.assertEqual(len(tag_query_results), 1)
+
+        instance2 = opendir_dl.commands.TagDeleteCommand()
+        instance2.config = self.config
+        instance2.arguments["--db"] = self.database_path
+        instance2.arguments["<name>"] = [tag_name]
+        instance2.run()
+        # Now make sure there are no tags with the specified name
+        tag_query_results = db_wrapper.query(opendir_dl.models.Tags).filter(opendir_dl.models.Tags.name.like(tag_name)).all()
+        self.assertEqual(len(tag_query_results), 0)
+
+    def test_delete_nonexistant_tag(self):
+        tag_name = "non-real_tag"
+        instance = opendir_dl.commands.TagDeleteCommand()
+        instance.config = self.config
+        instance.arguments["--db"] = self.database_path
+        instance.arguments["<name>"] = [tag_name]
+        with self.assertRaises(ValueError) as context:
+            instance.run()
+        expected_error = "Tag with name '{}' does not exist.".format(tag_name)
+        self.assertEqual(str(context.exception), expected_error)
 
 class CommandTagUpdateTest(TestWithConfig):
-    # TODO: Implement test
-    def test(self):
-        self.assertTrue(False)
+    def test_tag_index(self):
+        instance = opendir_dl.commands.TagUpdateCommand()
+        instance.config = self.config
+        instance.arguments["--db"] = self.database_path
+        instance.arguments["<name>"] = ["example_tag"]
+        instance.arguments["<index>"] = [1]
+        instance.run()
+
+    def test_nonexistant_tag(self):
+        tag_name = "non-real_tag"
+        instance = opendir_dl.commands.TagUpdateCommand()
+        instance.config = self.config
+        instance.arguments["--db"] = self.database_path
+        instance.arguments["<name>"] = [tag_name]
+        instance.arguments["<index>"] = [1]
+        with self.assertRaises(ValueError) as context:
+            instance.run()
+        expected_error = "Tag with name '{}' does not exist.".format(tag_name)
+        self.assertEqual(str(context.exception), expected_error)
+
+    def test_nonexistant_index(self):
+        file_index = 9001
+        instance = opendir_dl.commands.TagUpdateCommand()
+        instance.config = self.config
+        instance.arguments["--db"] = self.database_path
+        instance.arguments["<name>"] = ["example_tag"]
+        instance.arguments["<index>"] = [file_index]
+        with self.assertRaises(ValueError) as context:
+            instance.run()
+        expected_error = "File index with ID '{}' could not be found.".format(file_index)
+        self.assertEqual(str(context.exception), expected_error)
 
 class CommandIndexTest(TestWithConfig):
     def test_no_args(self):
@@ -225,14 +289,14 @@ class CommandSearchTest(TestWithConfig):
     def test_no_args(self):
         instance = opendir_dl.commands.SearchCommand()
         instance.config = self.config
-        instance.arguments["--db"] = "test_resources/test_sqlite3.db"
+        instance.arguments["--db"] = self.database_path
         instance.run()
 
     def test_rawsql(self):
         instance = opendir_dl.commands.SearchCommand()
         instance.config = self.config
         instance.arguments["--rawsql"] = True
-        instance.arguments["--db"] = "test_resources/test_sqlite3.db"
+        instance.arguments["--db"] = self.database_path
         instance.arguments["<terms>"] = ["select * from fileindex limit 5"]
         instance.run()
 

@@ -427,7 +427,7 @@ def create_table(data, columns=None):
     else:
         output_table = PrettyTable(columns)
         for i in data:
-            output_table.add_row([i.pkid, i.name, i.last_indexed, format_tags(i.tags)])
+            output_table.add_row(i)
     output_table.padding_width = 1
     output_table.align = 'l'
     return output_table.get_string()

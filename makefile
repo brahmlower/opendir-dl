@@ -1,5 +1,5 @@
 
-install:
+install: lint
 	pip install .
 
 uninstall:
