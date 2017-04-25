@@ -8,6 +8,8 @@ from docopt import docopt
 from docopt import DocoptExit
 from opendir_dl import commands
 
+__version__ = "0.0.0"
+
 class CommandMenu(object):
     def __init__(self):
         self.default = self.raise_no_default
@@ -165,8 +167,7 @@ def main(raw_input_list):
     """OpenDir-DL
 
     Usage:
-        opendir-dl help [options] [command]...
-        opendir-dl version [options]
+        opendir-dl help [options]
         opendir-dl index [options] [--quick] [--depth=<int>] <resource>...
         opendir-dl search [options] [--inclusive] [--rawsql] <terms>...
         opendir-dl download [options] <index>...
@@ -179,16 +180,15 @@ def main(raw_input_list):
         opendir-dl database delete [options] <name>...
 
     Options:
-        -h, --help          Shows this message
-        -d, --debug         Run the command in debug mode. This changes the
-                            configuration path to use, preventing database polution.
-        -v, --verbose       How loud should we be? By default this can be a noisy
-                            application.
-        -D <db>, --db <db>  This specifies the database to be used while executing
-                            the command. The provided value can be a URL, a file
-                            path, or a database profile. URLs and file paths must
-                            point to a valid opendir-dl sqlite3 database file. Valid
-                            database profiles's are explained in the Database section.
+        -d, --debug     Run the command in debug mode. This changes the
+                        configuration path to use, preventing database polution.
+        -v, --verbose   How loud should we be? By default this can be a noisy
+                        application.
+        --db <db>       This specifies the database to be used while executing
+                        the command. The provided value can be a URL, a file
+                        path, or a database profile. URLs and file paths must
+                        point to a valid opendir-dl sqlite3 database file. Valid
+                        database profiles's are explained in the Database section.
     """
 
     # Parse the user input
