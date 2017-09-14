@@ -200,17 +200,3 @@ You can do so by changing the command from search to download, and then providin
 ```
 opendir-dl download --search --db billsdb --inclusive jpg iso
 ```
-
-## For Developers
-
-The library can be used by importing `opendir_dl`. Here we are effectively running `opendir-dl search png`.
-```python
->>> import opendir_dl
->>> opendir_dl.main(['search', 'png'])
-```
-
-You can directly run commands without having to go through the input parsing process. This example is effectively the same as the one just above.
-```python
->>> import opendir_dl
->>> opendir_dl.commands.search(['png'])
-```

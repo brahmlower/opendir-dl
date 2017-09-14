@@ -66,7 +66,6 @@ class TestWithConfig(unittest.TestCase):
         self.config = opendir_dl.Configuration(config_path = config_path)
         self.create_database_instance()
 
-
     def tear_down(self):
         # Delete the test directory
         test_data_dir = os.path.abspath(os.path.join(self.config.config_path, os.pardir))

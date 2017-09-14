@@ -5,7 +5,7 @@ setup(
     name = "opendir_dl",
 
     # Version number:
-    version = "0.0.0",
+    version = "0.1.0",
 
     # Application author details:
     author = "Brahm Lower",
@@ -16,8 +16,6 @@ setup(
 
     # Packages:
     packages = ["opendir_dl"],
-
-    scripts = ['scripts/opendir-dl'],
 
     # Details:
     url = "https://github.com/bplower/opendir-dl",
@@ -36,4 +34,9 @@ setup(
         "lxml", # This is needed to properly install BeautifulSoup4
         "BeautifulSoup4"
     ],
+
+    entry_points={
+        'console_scripts': ['opendir-dl = opendir_dl.__init__:main']
+    },
+
 )

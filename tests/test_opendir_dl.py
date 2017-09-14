@@ -6,17 +6,6 @@ from docopt import DocoptExit
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'opendir_dl'))
 import opendir_dl
 
-class MainTest(unittest.TestCase):
-    def test_no_args(self):
-        with self.assertRaises(DocoptExit) as context:
-            opendir_dl.main(["--debug"])
-
-    def test_arg_list(self):
-        opendir_dl.main(["search", "--debug", "--inclusive", "test"])
-
-    def test_help(self):
-        opendir_dl.main(["help"])
-
 class MakeDirPTest(unittest.TestCase):
     def test_make_missing_path(self):
         path = "mkdirp1/missing/path"

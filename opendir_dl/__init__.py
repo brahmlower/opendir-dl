@@ -163,7 +163,7 @@ def print_help(content):
         print content
     return decorated_print_help
 
-def main(raw_input_list):
+def main():
     """OpenDir-DL
 
     Usage:
@@ -192,7 +192,7 @@ def main(raw_input_list):
     """
 
     # Parse the user input
-    arguments = docopt(main.__doc__, help=False, argv=raw_input_list)
+    arguments = docopt(main.__doc__, help=False)
     verbose = arguments.get("--verbose")
     if verbose:
         print arguments
