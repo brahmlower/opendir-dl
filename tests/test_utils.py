@@ -2,7 +2,7 @@ import os
 import sys
 import tempfile
 import unittest
-from urlparse import urlparse
+from urllib.parse import urlparse
 from datetime import datetime
 import sqlalchemy
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'opendir_dl'))
@@ -167,14 +167,14 @@ class BadAnchorTest(unittest.TestCase):
 class PageCrawlerTest(TestWithConfig):
     # The following function has been commented out because the property url_triage_bucked has
     # been refactored out while implementing threads
-    
+
     # def test_clean_index_items(self):
     #     with ThreadedHTTPServer("localhost", 8000) as server:
     #         db_url = "%stest_resources/test_sqlite3.db" % server.url
     #         db = opendir_dl.databasing.database_opener(self.config, db_url)
     #     index_items = ["http://localhost/", 10, "3"]
     #     crawler = opendir_dl.utils.PageCrawler(db, index_items)
-        
+
     #     self.assertEqual(len(crawler.url_triage_bucket), 3)
     #     # TODO: This will need to check that the URL for items 10 and 3 match those items in the database
     #     for i in crawler.url_triage_bucket:

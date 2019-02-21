@@ -24,7 +24,7 @@ class DatabaseWrapper(object):
     def is_connected(self):
         """True/False value for if the DatabaseWrapper instance is connected
         """
-        return self.db_conn != None
+        return self.db_conn is not None
 
     def connect(self):
         """ Establish the database session given the set values
@@ -80,12 +80,10 @@ class DatabaseWrapper(object):
         """ Gets a database session from a URL
         """
         response = http_get(url)
-        if response[0]['status'] == '200':
-            return cls.from_data(response[1])
-        else:
-            message = "HTTP GET request failed with error '%s'. Expected '200'." \
-                    % response[0]['status']
+        if response[0]['status'] != '200':
+            message = "HTTP GET request failed with error '{}'. Expected '200'.".format(response[0]['status'])
             raise ValueError(message)
+        return cls.from_data(response[1])
 
     @classmethod
     def from_name(cls, config, name):

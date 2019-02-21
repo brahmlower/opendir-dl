@@ -1,6 +1,6 @@
 import os
 import sys
-import md5
+import hashlib
 import unittest
 import appdirs
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'opendir_dl'))
@@ -307,8 +307,8 @@ class CommandDownloadTest(TestWithConfig):
     def assert_files_match(self, file_path1, file_path2):
         file_1 = open(file_path1)
         file_2 = open(file_path2)
-        md5_1 = md5.new(file_1.read()).digest()
-        md5_2 = md5.new(file_2.read()).digest()
+        md5_1 = hashlib.md5(file_1.read()).digest()
+        md5_1 = hashlib.md5(file_2.read()).digest()
         self.assertEqual(md5_1, md5_2)
 
     def test_no_args(self):

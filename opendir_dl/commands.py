@@ -94,7 +94,7 @@ Tags can be listed using the command 'tag list', which will produce a table of a
     for i in results:
         cleaned_results.append([i.name, len(i.indexes)])
     columns = ["Tag Name", "Num References"]
-    print create_table(cleaned_results, columns)
+    print(create_table(cleaned_results, columns))
 
 @BaseCommand.factory
 def TagCreateCommand(self):
@@ -182,7 +182,7 @@ its ID, and that you can reference all databases at once.
         self.db_connect()
     # Make the download manager, configure it, start it
     values = self.get_argument("index")
-    print values
+    print(values)
     dlman = DownloadManager(self.db_wrapper, values)
     dlman.no_index = self.has_flag("no-index")
     dlman.start()
@@ -249,7 +249,7 @@ This command provides search functionality within the specified database.
     if self.has_flag("rawsql"):
         rawsql = sqlalchemy.text(' '.join(self.get_argument("terms")))
         results = self.db_wrapper.db_conn.execute(rawsql)
-        print create_table(results)
+        print(create_table(results))
     else:
         terms = self.get_argument("terms")
         search = SearchEngine(self.db_wrapper.db_conn, terms)
@@ -259,7 +259,7 @@ This command provides search functionality within the specified database.
         for i in results:
             cleaned_results.append([i.pkid, i.name, i.last_indexed, format_tags(i.tags)])
         columns = ["ID", "Name", "Last Indexed", "Tags"]
-        print create_table(cleaned_results, columns)
+        print(create_table(cleaned_results, columns))
 
 @BaseCommand.factory
 def DatabaseListCommand(self):
@@ -288,7 +288,7 @@ there will only be the default database listed.
     for i in self.config.databases:
         row = [i, self.config.databases[i]['type'], self.config.databases[i]['resource']]
         output_table.add_row(row)
-    print output_table
+    print(output_table)
 
 @BaseCommand.factory
 def DatabaseCreateCommand(self):

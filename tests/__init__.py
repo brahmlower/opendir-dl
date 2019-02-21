@@ -1,16 +1,15 @@
 import os
 import sys
-import socket
 import threading
-import SocketServer
-from SimpleHTTPServer import SimpleHTTPRequestHandler
+import socketserver
+from http.server import HTTPServer
 import httplib2
 import unittest
 import shutil
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'opendir_dl'))
 import opendir_dl
 
-class QuietSimpleHTTPRequestHandler(SimpleHTTPRequestHandler):
+class QuietHTTPServer(HTTPServer):
     """Produces no logging output
 
     I defined this just to keep the test output pretty
@@ -20,11 +19,11 @@ class QuietSimpleHTTPRequestHandler(SimpleHTTPRequestHandler):
 
 class ThreadedHTTPServer(object):
     def __init__(self, host, port):
-        SocketServer.TCPServer.allow_reuse_address = True
-        self.server = SocketServer.TCPServer((host, port), QuietSimpleHTTPRequestHandler)
+        socketserver.TCPServer.allow_reuse_address = True
+        self.server = socketserver.TCPServer((host, port), QuietHTTPServer)
         self.server_thread = threading.Thread(target=self.server.serve_forever)
         self.server_thread.daemon = True
-        self.url = "http://%s:%d/" % (host, port)
+        self.url = "http://{}:{}/".format(host, port)
 
     def start(self):
         self.server_thread.start()

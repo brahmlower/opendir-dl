@@ -48,7 +48,7 @@ class CommandMenu(object):
 
     def register_string(self, command, obj, verbose=True):
         if verbose:
-            print "[INFO] Registering command '{}' to function {}".format(command, obj)
+            print("[INFO] Registering command '{}' to function {}".format(command, obj))
         if self.commands.get(command, False):
             # This means the command has already been registered. In this case,
             # there might be subcommands we don't want to overwrite, so we're just
@@ -63,7 +63,7 @@ class CommandMenu(object):
 
     def register_list(self, command_list, obj, verbose=True):
         if verbose:
-            print "[INFO] Registering command '{}' to function {}".format(" ".join(command_list), obj)
+            print("[INFO] Registering command '{}' to function {}".format(" ".join(command_list), obj))
         if not isinstance(command_list, list):
             # Make sure we were given a list
             raise TypeError("Value for command_list should be of type 'list'.")
@@ -149,7 +149,7 @@ def mkdir_p(path):
 def walk_menu_path(command_menu, arguments):
     command_list = []
     # While we have a target menu
-    while command_menu != None:
+    while command_menu is not None:
         current_menu = command_menu
         command_menu = None
         for i in current_menu.keywords():
@@ -160,7 +160,7 @@ def walk_menu_path(command_menu, arguments):
 
 def print_help(content):
     def decorated_print_help():
-        print content
+        print(content)
     return decorated_print_help
 
 def main():
@@ -195,7 +195,7 @@ def main():
     arguments = docopt(main.__doc__, help=False)
     verbose = arguments.get("--verbose")
     if verbose:
-        print arguments
+        print(arguments)
 
     # Define the available command menu
     command_menu = CommandMenu()

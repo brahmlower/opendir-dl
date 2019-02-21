@@ -1,9 +1,7 @@
 from time import sleep
 import urllib
-import urlparse
 import datetime
-import Queue
-import socket
+import queue
 from threading import Thread
 from threading import Lock
 import httplib2
@@ -26,11 +24,11 @@ class PageCrawler(object):
         self._triage_method = self.triage_standard
         # FileIndex creation values
         self._fileindex_creator_thread = None
-        self._fileindex_heads = Queue.Queue()
+        self._fileindex_heads = queue.Queue()
         # PageScrapper values
         self.scraper_threads_max = 5
         self._scraper_threads = []
-        self._urls_to_scrape = Queue.Queue()
+        self._urls_to_scrape = queue.Queue()
         # Thread exit is used to break all the threads out of their loop
         self._thread_exit = False
         # Thread idle is used to determine when to stop the control loop. When
@@ -76,7 +74,7 @@ class PageCrawler(object):
             try:
                 head = self._fileindex_heads.get(timeout=.1)
                 save_head(self.db_conn, head.as_fileindex())
-            except Queue.Empty:
+            except queue.Empty:
                 pass
 
     def set_idle_status(self, thread_id, status):
@@ -91,19 +89,19 @@ class PageCrawler(object):
         while not self._thread_exit:
             try:
                 target_url = self._urls_to_scrape.get(timeout=.1)
-                print "Thread {} got url {}".format(thread_num, target_url)
+                print("Thread {} got url {}".format(thread_num, target_url))
                 # Indicate to the controller that this thread is not idle
                 self.set_idle_status(thread_num, False)
                 response = http_session.request(target_url)
                 new_urls = parse_urls(target_url, response[1])
                 for i, e in enumerate(new_urls):
                     if not self._thread_exit:
-                        print "Thread {} triaging new url {} of {}.".format(thread_num, i+1, len(new_urls))
+                        print("Thread {} triaging new url {} of {}.".format(thread_num, i+1, len(new_urls)))
                         self._triage_method(e, http_session=http_session)
                     else:
                         break
                 self.set_idle_status(thread_num, True)
-            except Queue.Empty:
+            except queue.Empty:
                 pass
             except:
                 self.set_idle_status(thread_num, True)
@@ -133,10 +131,10 @@ class PageCrawler(object):
 
         try:
             while sum(self._thread_idle) != self.scraper_threads_max:
-                print 'idle: ' + str(self._thread_idle)
+                print('idle: ' + str(self._thread_idle))
                 sleep(1)
         except KeyboardInterrupt:
-            print "\nWaiting for threads to exit gracefully..."
+            print("\nWaiting for threads to exit gracefully...")
             self._thread_exit = True
 
         self._thread_exit = True
@@ -154,7 +152,7 @@ class PageCrawler(object):
         head = HttpHead.from_url(url, http_session)
         if head.status != 200:
             # TODO: Write a test that triggers this
-            print "Index failed (HTTP Error %d) URL: %s" % (head.status, url)
+            print("Index failed (HTTP Error %d) URL: %s" % (head.status, url))
         elif head.is_html() and not head.last_modified:
             # If the content type is "text/html", and does not have a
             # "last-modified" date, then it's a page we want to crawl.
@@ -164,7 +162,7 @@ class PageCrawler(object):
             # should add it to the index database.
             self._fileindex_heads.put(head)
 
-    def triage_quick(self, url, **kwargs):
+    def triage_quick(self, url):
         """Triages URLs without making HEAD requests
         """
         if url[-1] == "/":
@@ -181,7 +179,7 @@ class SearchEngine(object):
         self.db_conn = db_conn
         self._exclusivity = sqlalchemy.and_
         self.filters = []
-        if search_terms != None:
+        if search_terms is not None:
             for i in search_terms:
                 self.add_filter(i)
 
@@ -217,12 +215,12 @@ class SearchEngine(object):
 class HttpHead(object):
     def __init__(self, url, head_dict):
         self._last_modified = None
-        parsed_url = urlparse.urlparse(url)
-        self.url = unicode(url)
+        parsed_url = urllib.parse.urlparse(url)
+        self.url = url
         self.name = url_to_filename(self.url)
-        self.domain = unicode(parsed_url.hostname)
+        self.domain = parsed_url.hostname
         self.status = int(head_dict.get("status", 0))
-        self.content_type = unicode(head_dict.get("content-type", ''))
+        self.content_type = head_dict.get("content-type", '')
         self.content_length = int(head_dict.get("content-length", 0))
         self.last_modified = head_dict.get("last-modified", None)
         self.last_indexed = datetime.datetime.utcnow()
@@ -297,7 +295,7 @@ class DownloadManager(object):
         response = http_session.request(url)
         head = HttpHead(url, response[0])
         if head.status != 200:
-            print "Failed to download file (HTTP Status %d): %s" % (head.status, url)
+            print("Failed to download file (HTTP Status %d): %s" % (head.status, url))
             return
         # Save the file
         write_file(filename, response[1])
@@ -344,11 +342,11 @@ def save_head(db_conn, head, commit=True):
         # print 'Updating pre-existing index'
     else:
         # There are multiple entries
-        print "There were multiple entires (this is bad). URL index not saved."
-        print "URL: {}\nNumber of results: {}".format(head.url, results.count())
-        print "\nResults:"
+        print("There were multiple entires (this is bad). URL index not saved.")
+        print("URL: {}\nNumber of results: {}".format(head.url, results.count()))
+        print("\nResults:")
         for i in results:
-            print i.name, i.url
+            print(i.name, i.url)
         return
     if commit:
         db_conn.commit()
@@ -399,10 +397,10 @@ def bad_anchor(anchor):
 def url_to_filename(url):
     """Parses the filename from the given URL
     """
-    if not isinstance(url, urlparse.ParseResult):
-        url = urlparse.urlparse(url)
+    if not isinstance(url, urllib.parse.ParseResult):
+        url = urllib.parse.urlparse(url)
     quoted_filename = url.path.split("/")[-1]
-    filename = urllib.unquote(quoted_filename)
+    filename = urllib.parse.unquote(quoted_filename)
     if len(filename) == 0:
         filename = "index.html"
     return filename
@@ -414,7 +412,7 @@ def write_file(filename, data):
 
 def is_url(candidate):
     try:
-        url = urlparse.urlparse(candidate)
+        url = urllib.parse.urlparse(candidate)
         return url.path != '' and url.scheme != '' and url.netloc != ''
     except AttributeError:
         return False
@@ -433,10 +431,5 @@ def create_table(data, columns=None):
     return output_table.get_string()
 
 def format_tags(tags_list):
-    clean_list = []
-    for i in tags_list:
-        clean_list.append(i.name)
-    if clean_list == []:
-        return ''
-    else:
-        return " ".join(clean_list)
+    name_list = [x.name for x in tags_list]
+    return " ".join(name_list)

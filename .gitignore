@@ -90,3 +90,4 @@ ENV/
 
 sqlite3.db
 coverage_html
+.vscode
